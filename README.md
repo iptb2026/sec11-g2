@@ -13,11 +13,11 @@ The project is developed collaboratively by the assigned group as part of the co
 ## 👥 Team Information
 
 - **Section:** 
-- **Group Leader - 1 :**
+- **Group Leader - 2 : Cyle Stephen Marquiso 
 
 ### Team Members
-- Member 2
-- Member 3
+- Mac Ciez John Evanoso
+- Jaspher Austine Velos
 - Member 4
 - Member 5
 - Member 6
