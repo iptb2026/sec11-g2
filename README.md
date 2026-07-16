@@ -18,7 +18,7 @@ The project is developed collaboratively by the assigned group as part of the co
 ### Team Members
 - Mac Ceaz John Evanoso
 - Jaspher Austen Velos
-- Cedrick Costas
+- Cedrick G. Costas
 - Carl Louise O. Calica 
 - Harvey Salva
 - Vincent James V. Espada
