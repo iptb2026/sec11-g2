@@ -22,7 +22,6 @@ The project is developed collaboratively by the assigned group as part of the co
 - Carl Calica
 - Harvey Salva
 - Vincent James V. Espada
-- Member 7 (if applicable)
 
 ---
 
