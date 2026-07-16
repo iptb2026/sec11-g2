@@ -20,7 +20,7 @@ The project is developed collaboratively by the assigned group as part of the co
 - Jaspher Austine Velos
 - Cedrick Costas
 - Carl Calica
-- Vincent James Espada
+- Vincent James V. Espada
 - Member 7 (if applicable)
 
 ---
