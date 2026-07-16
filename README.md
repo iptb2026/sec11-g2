@@ -19,7 +19,7 @@ The project is developed collaboratively by the assigned group as part of the co
 - Mac Ceaz John Evanoso
 - Jaspher Austen Velos
 - Cedrick Costas
-- Carl Calica
+- Carl Louise O. Calica 
 - Harvey Salva
 - Vincent James V. Espada
 
