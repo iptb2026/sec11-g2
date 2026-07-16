@@ -16,11 +16,11 @@ The project is developed collaboratively by the assigned group as part of the co
 - **Group Leader - 2 : Cyle Stephen Marquiso 
 
 ### Team Members
-- Mac Ciez John Evanoso
+- Mac Ceaz John Evanoso
 - Jaspher Austine Velos
 - Cedrick Costas
 - Carl Calica
-- Harvey Salva
+- Vincent James Espada
 - Member 7 (if applicable)
 
 ---
