@@ -46,3 +46,9 @@ def root():
     return {"status": "ok", "app": settings.APP_NAME}
 
     
+# ==== LAYER 3: Account Configuration ====
+from app.routers import accounts, withdrawal_limits, interest_policies
+
+app.include_router(accounts.router)
+app.include_router(withdrawal_limits.router)
+app.include_router(interest_policies.router)
