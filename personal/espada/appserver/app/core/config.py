@@ -1,10 +1,10 @@
 class Settings:
     # --- Database ---
-    DB_USER: str = "admin"
+    DB_USER: str = "espada"
     DB_PASSWORD: str = "1234"
-    DB_HOST: str = "0.0.0.0"
+    DB_HOST: str = "127.0.0.1"
     DB_PORT: int = 3306
-    DB_NAME: str = "marquiso"
+    DB_NAME: str = "espada"
 
     @property
     def DATABASE_URL(self) -> str:
