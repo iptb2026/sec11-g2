@@ -16,3 +16,5 @@ class AccountType(Base):
     annual_interest_rate = Column(DECIMAL(5, 2), default=0.00)
     daily_withdrawal_limit = Column(DECIMAL(18, 2), default=0.00)
     created_at = Column(TIMESTAMP, server_default=func.now())
+
+    

@@ -13,3 +13,5 @@ class Role(Base):
     role_name = Column(String(100), nullable=False)
     description = Column(Text, nullable=True)
     created_at = Column(TIMESTAMP, server_default=func.now())
+
+    

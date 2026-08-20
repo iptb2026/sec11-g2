@@ -57,3 +57,7 @@ def delete_account_type(account_type_id: int, db: Session = Depends(get_db)):
 
     db.delete(account_type)
     commit_or_409(db, "Cannot delete this account type — one or more accounts still reference it")
+
+
+
+    

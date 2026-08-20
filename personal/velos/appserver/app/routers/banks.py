@@ -58,3 +58,5 @@ def delete_bank(bank_id: int, db: Session = Depends(get_db)):
 
     db.delete(bank)
     commit_or_409(db, "Cannot delete this bank — one or more interbank transfers still reference it")
+
+    
