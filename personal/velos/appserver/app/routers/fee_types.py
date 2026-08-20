@@ -58,3 +58,5 @@ def delete_fee_type(fee_type_id: int, db: Session = Depends(get_db)):
 
     db.delete(fee_type)
     commit_or_409(db, "Cannot delete this fee type — one or more fee records still reference it")
+
+    

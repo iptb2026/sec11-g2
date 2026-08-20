@@ -17,3 +17,5 @@ def commit_or_409(db: Session, message: str = "This action conflicts with existi
     except IntegrityError:
         db.rollback()
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=message)
+
+        

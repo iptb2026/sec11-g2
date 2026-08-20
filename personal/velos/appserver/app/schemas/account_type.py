@@ -26,3 +26,5 @@ class AccountTypeOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+        

@@ -15,3 +15,5 @@ class FeeType(Base):
     fixed_amount = Column(DECIMAL(18, 2), default=0.00)
     percentage_rate = Column(DECIMAL(5, 2), default=0.00)
     created_at = Column(TIMESTAMP, server_default=func.now())
+
+    

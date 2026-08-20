@@ -17,3 +17,5 @@ class Bank(Base):
     contact_email = Column(String(150), nullable=True)
     status = Column(Enum("ACTIVE", "INACTIVE"), default="ACTIVE")
     created_at = Column(TIMESTAMP, server_default=func.now())
+
+    
