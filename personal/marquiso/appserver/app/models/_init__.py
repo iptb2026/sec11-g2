@@ -8,3 +8,8 @@ from app.models.fee_type import FeeType
 from app.models.user import User
 from app.models.session import UserSession
 from app.models.audit_log import AuditLog
+
+# ==== LAYER 3: Account Configuration ====
+from app.models.account import Account
+from app.models.withdrawal_limit import WithdrawalLimit
+from app.models.interest_policy import InterestPolicy
