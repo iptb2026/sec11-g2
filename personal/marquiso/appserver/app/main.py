@@ -10,6 +10,9 @@ from app.routers import roles, account_types, banks, fee_types
 # ==== LAYER 2: Identity & Access ====
 from app.routers import users, auth, sessions, audit_logs
 
+# ==== LAYER 3: Account Configuration ====
+from app.routers import accounts, withdrawal_limits, interest_policies
+
 
 # Creates tables if they don't already exist
 Base.metadata.create_all(bind=engine)
