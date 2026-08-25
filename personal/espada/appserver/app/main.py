@@ -52,3 +52,11 @@ from app.routers import accounts, withdrawal_limits, interest_policies
 app.include_router(accounts.router)
 app.include_router(withdrawal_limits.router)
 app.include_router(interest_policies.router)
+
+# ==== LAYER 4: Transactions ====
+from app.routers import deposits, withdrawals, transfers, interbank_transfers
+
+app.include_router(deposits.router)
+app.include_router(withdrawals.router)
+app.include_router(transfers.router)
+app.include_router(interbank_transfers.router)
