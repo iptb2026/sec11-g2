@@ -9,6 +9,12 @@ from app.routers import roles, account_types, banks, fee_types
 # ==== LAYER 2: Identity & Access ====
 from app.routers import users, auth, sessions, audit_logs
 
+# ==== LAYER 3: Account Configuration ====
+from app.routers import accounts, withdrawal_limits, interest_policies
+
+# ==== LAYER 4: Transactions ====
+from app.routers import deposits, withdrawals, transfers, interbank_transfers
+
 # Creates tables if they don't already exist
 Base.metadata.create_all(bind=engine)
 
@@ -25,6 +31,18 @@ app.include_router(users.router)
 app.include_router(auth.router)
 app.include_router(sessions.router)
 app.include_router(audit_logs.router)
+
+# ==== LAYER 3: Account Configuration ====
+app.include_router(accounts.router)
+app.include_router(withdrawal_limits.router)
+app.include_router(interest_policies.router)
+
+
+# ==== LAYER 4: Transactions ====
+app.include_router(deposits.router)
+app.include_router(withdrawals.router)
+app.include_router(transfers.router)
+app.include_router(interbank_transfers.router)
 
 
 @app.get("/", tags=["Health"])
