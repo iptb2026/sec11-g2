@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini Banking System</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .login-box {
+            background: white;
+            padding: 35px;
+            border-radius: 10px;
+            width: 350px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            text-align: center;
+            margin-bottom: 25px;
+            color: #666;
+        }
+
+        label {
+            display: block;
+            margin-top: 15px;
+            margin-bottom: 5px;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        button {
+            width: 100%;
+            padding: 11px;
+            margin-top: 20px;
+            cursor: pointer;
+        }
+
+        #message {
+            margin-top: 15px;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="login-box">
+
+    <h1>Mini Banking System</h1>
+
+    <div class="subtitle">
+        Admin • Staff • Customer
+    </div>
+
+    <form id="loginForm">
+
+        <label>Username</label>
+        <input
+            type="text"
+            id="username"
+            placeholder="Enter username"
+            required
+        >
+
+        <label>Password</label>
+        <input
+            type="password"
+            id="password"
+            placeholder="Enter password"
+            required
+        >
+
+        <button type="submit">
+            Login
+        </button>
+
+    </form>
+
+    <div id="message"></div>
+
+</div>
+
+<script>
+const API_URL = "http://localhost:5002";
+
+document.getElementById("loginForm").addEventListener("submit", async function(event) {
+
+    event.preventDefault();
+
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+    const message = document.getElementById("message");
+
+    message.textContent = "Logging in...";
+
+    const formData = new URLSearchParams();
+
+    formData.append("username", username);
+    formData.append("password", password);
+    formData.append("grant_type", "password");
+
+    try {
+
+        const response = await fetch(API_URL + "/auth/login", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded"
+            },
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+
+    localStorage.setItem(
+        "access_token",
+        data.access_token
+    );
+
+    localStorage.setItem(
+        "username",
+        username
+    );
+
+    message.textContent =
+        "Login successful! Welcome " + username + ".";
+
+    const user = username.toLowerCase();
+
+if (user === "admin") {
+    window.location.href = "admin.html";
+} else if (user === "staff") {
+    window.location.href = "staff.html";
+} else if (user === "customer") {
+    window.location.href = "customer.html";
+}
+} else {
+
+            message.textContent =
+                data.detail || "Login failed.";
+
+        }
+
+    } catch (error) {
+
+        message.textContent =
+            "Cannot connect to the banking server.";
+
+        console.error(error);
+    }
+});
+</script>
+
+</body>
+</html>

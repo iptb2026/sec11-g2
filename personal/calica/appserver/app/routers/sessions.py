@@ -5,13 +5,17 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.db_utils import commit_or_409
+from app.core.security import require_roles
 from app.database.session import get_db
 from app.models.session import UserSession
 from app.models.user import User
 from app.schemas.session import SessionCreate, SessionOut
 
-router = APIRouter(prefix="/sessions", tags=["Layer 2 - Sessions"])
-
+router = APIRouter(
+    prefix="/sessions",
+    tags=["Layer 2 - Sessions"],
+    dependencies=[Depends(require_roles("ADMIN"))]
+)
 
 @router.post("/", response_model=SessionOut, status_code=status.HTTP_201_CREATED)
 def create_session(session_data: SessionCreate, db: Session = Depends(get_db)):

@@ -10,6 +10,7 @@ from app.core.security import check_password, create_token, oauth2_scheme
 from app.database.session import get_db
 from app.models.session import UserSession
 from app.models.user import User
+from app.models.role import Role
 from app.schemas.auth import Token
 
 router = APIRouter(prefix="/auth", tags=["Layer 2 - Auth"])
@@ -31,7 +32,15 @@ def login(
     if user.account_status != "ACTIVE":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is not active")
 
-    token = create_token(user.username)
+    role = db.query(Role).filter(Role.id == user.role_id).first()
+
+    if not role:
+        raise HTTPException(
+             status_code=status.HTTP_403_FORBIDDEN,
+            detail="User role not found"
+       )
+
+    token = create_token(user.username, role.role_code)
     expires_at = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
 
     # Every successful login is recorded as a row in `sessions` (Layer 2 table).

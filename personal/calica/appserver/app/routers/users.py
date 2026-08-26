@@ -3,14 +3,17 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.db_utils import commit_or_409
-from app.core.security import hash_password
+from app.core.security import hash_password, require_roles
 from app.database.session import get_db
 from app.models.role import Role
 from app.models.user import User
 from app.schemas.user import UserCreate, UserOut
 
-router = APIRouter(prefix="/users", tags=["Layer 2 - Users"])
-
+router = APIRouter(
+    prefix="/users",
+    tags=["Layer 2 - Users"],
+    dependencies=[Depends(require_roles("ADMIN"))]
+)
 
 @router.post("/", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 def create_user(user: UserCreate, db: Session = Depends(get_db)):
@@ -36,7 +39,6 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
 @router.get("/", response_model=list[UserOut])
 def list_users(db: Session = Depends(get_db)):
     return db.query(User).all()
-
 
 @router.get("/{user_id}", response_model=UserOut)
 def get_user(user_id: int, db: Session = Depends(get_db)):

@@ -26,9 +26,12 @@ def check_password(plain_password: str, hashed_password: str) -> bool:
 
 # --- JWT TOKEN FUNCTIONS ---
 
-def create_token(username: str) -> str:
-    """Create a JWT token for a logged-in user. No expiry."""
-    data = {"sub": username}
+def create_token(username: str, role_code: str) -> str:
+    """Create a JWT token containing the username and role."""
+    data = {
+        "sub": username,
+        "role": role_code
+    }
     return jwt.encode(data, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
@@ -48,4 +51,43 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> str:
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
 
-    
+def require_roles(*allowed_roles: str):
+    """
+    Allow access only when the JWT contains one of the allowed roles.
+    """
+
+    def role_checker(token: str = Depends(oauth2_scheme)):
+        try:
+            payload = jwt.decode(
+                token,
+                settings.SECRET_KEY,
+                algorithms=[settings.ALGORITHM]
+            )
+
+            username = payload.get("sub")
+            role = payload.get("role")
+
+            if username is None or role is None:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid token"
+                )
+
+            if role not in allowed_roles:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="You do not have permission to access this resource"
+                )
+
+            return {
+                "username": username,
+                "role": role
+            }
+
+        except JWTError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or expired token"
+            )
+
+    return role_checker   

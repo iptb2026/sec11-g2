@@ -2,13 +2,17 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.core.security import require_roles
 from app.database.session import get_db
 from app.models.audit_log import AuditLog
 from app.models.user import User
 from app.schemas.audit_log import AuditLogCreate, AuditLogOut
 
-router = APIRouter(prefix="/audit-logs", tags=["Layer 2 - Audit Logs"])
-
+router = APIRouter(
+    prefix="/audit-logs",
+    tags=["Layer 2 - Audit Logs"],
+    dependencies=[Depends(require_roles("ADMIN"))]
+)
 
 @router.post("/", response_model=AuditLogOut, status_code=status.HTTP_201_CREATED)
 def create_audit_log(log: AuditLogCreate, db: Session = Depends(get_db)):

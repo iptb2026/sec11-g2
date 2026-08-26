@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Dashboard - Mini Banking System</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+        }
+
+        header {
+            background: #ffffff;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        header h2 {
+            margin: 0;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 30px auto;
+            padding: 20px;
+        }
+
+        .welcome {
+            margin-bottom: 25px;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+
+        .card h3 {
+            margin-top: 0;
+        }
+
+        .balance {
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        button {
+            padding: 10px 18px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        .logout {
+            background: #333;
+            color: white;
+        }
+
+        .action {
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        #message {
+            margin-top: 25px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h2>Mini Banking System</h2>
+    <button class="logout" onclick="logout()">Logout</button>
+</header>
+
+<div class="container">
+
+    <div class="welcome">
+        <h1>Customer Dashboard</h1>
+        <p>
+            Welcome,
+            <strong id="username">Customer</strong>
+        </p>
+    </div>
+
+    <div class="cards">
+
+        <div class="card">
+            <h3>My Account</h3>
+            <p>Account Number</p>
+            <strong>ACC001</strong>
+        </div>
+
+        <div class="card">
+            <h3>Available Balance</h3>
+            <div class="balance" id="balance">
+                Loading...
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Account Status</h3>
+            <p id="status">Loading...</p>
+        </div>
+
+        <div class="card">
+            <h3>Customer Services</h3>
+
+            <button class="action" onclick="viewAccount()">
+                View Account
+            </button>
+
+            <button class="action" onclick="viewTransfers()">
+                View Transfers
+            </button>
+        </div>
+
+    </div>
+
+    <div id="message">
+        Customer account information will appear here.
+    </div>
+
+</div>
+
+<script>
+
+const API_URL = "http://localhost:5002";
+
+const token = localStorage.getItem("access_token");
+const username = localStorage.getItem("username");
+
+if (!token) {
+    window.location.href = "index.html";
+} else {
+    try {
+        const payload = JSON.parse(atob(token.split(".")[1]));
+
+        if (payload.role !== "CUSTOMER") {
+            localStorage.removeItem("access_token");
+            localStorage.removeItem("username");
+            window.location.href = "index.html";
+        }
+    } catch (error) {
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("username");
+        window.location.href = "index.html";
+    }
+}
+
+document.getElementById("username").textContent =
+    username || "Customer";
+
+
+async function loadAccount() {
+
+    try {
+
+        const response = await fetch(API_URL + "/accounts/");
+
+        const accounts = await response.json();
+
+        if (accounts.length > 0) {
+
+            const account = accounts[0];
+
+            document.getElementById("balance").textContent =
+                "PHP " + account.available_balance;
+
+            document.getElementById("status").textContent =
+                account.status;
+
+        }
+
+    } catch (error) {
+
+        document.getElementById("balance").textContent =
+            "Unable to load";
+
+    }
+}
+
+
+async function viewAccount() {
+
+    try {
+
+        const response = await fetch(API_URL + "/accounts/1");
+
+        const account = await response.json();
+
+        document.getElementById("message").innerHTML =
+            "<strong>Account Number:</strong> " +
+            account.account_number +
+            "<br><strong>Available Balance:</strong> PHP " +
+            account.available_balance +
+            "<br><strong>Ledger Balance:</strong> PHP " +
+            account.ledger_balance +
+            "<br><strong>Status:</strong> " +
+            account.status;
+
+    } catch (error) {
+
+        document.getElementById("message").textContent =
+            "Unable to retrieve account.";
+
+    }
+}
+
+
+async function viewTransfers() {
+
+    try {
+
+        const response = await fetch(API_URL + "/transfers/");
+
+        const transfers = await response.json();
+
+        if (transfers.length === 0) {
+
+            document.getElementById("message").textContent =
+                "No transfer records found.";
+
+            return;
+        }
+
+        let output = "<strong>Transfer History</strong><br><br>";
+
+        transfers.forEach(function(transfer) {
+
+            output +=
+                "Reference: " +
+                transfer.transfer_reference +
+                " | Amount: PHP " +
+                transfer.amount +
+                " | Status: " +
+                transfer.status +
+                "<br>";
+
+        });
+
+        document.getElementById("message").innerHTML = output;
+
+    } catch (error) {
+
+        document.getElementById("message").textContent =
+            "Unable to retrieve transfers.";
+
+    }
+}
+
+
+async function logout() {
+
+    try {
+
+        await fetch(API_URL + "/auth/logout", {
+            method: "POST",
+            headers: {
+                "Authorization": "Bearer " + token
+            }
+        });
+
+    } catch (error) {
+        console.log(error);
+    }
+
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("username");
+
+    window.location.href = "index.html";
+}
+
+
+loadAccount();
+
+</script>
+
+</body>
+</html>
