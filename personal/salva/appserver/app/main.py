@@ -15,6 +15,9 @@ from app.routers import accounts, withdrawal_limits, interest_policies
 # ==== LAYER 4: Transactions ====
 from app.routers import deposits, withdrawals, transfers, interbank_transfers
 
+# ==== LAYER 5: Financial Records & Ledger ====
+from app.routers import fee_records, interest_records, ledger_entries
+
 # Creates tables if they don't already exist
 Base.metadata.create_all(bind=engine)
 
@@ -44,6 +47,10 @@ app.include_router(withdrawals.router)
 app.include_router(transfers.router)
 app.include_router(interbank_transfers.router)
 
+# ==== LAYER 5: Financial Records & Ledger ====
+app.include_router(fee_records.router)
+app.include_router(interest_records.router)
+app.include_router(ledger_entries.router)
 
 @app.get("/", tags=["Health"])
 def root():
