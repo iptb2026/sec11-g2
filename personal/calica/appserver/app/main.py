@@ -19,14 +19,17 @@ from app.routers import deposits, withdrawals, transfers, interbank_transfers
 # ==== LAYER 5: Financial Records & Ledger ====
 from app.routers import fee_records, interest_records, ledger_entries
 
+
 # Creates tables if they don't already exist
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title=settings.APP_NAME, version=settings.APP_VERSION)
 
-# Allows the Quasar frontend (a different origin/port, e.g. http://localhost:9000)
-# to call this API from the browser. Wide open here since this is a learning
-# project with no real users; a production app would restrict allow_origins.
+app = FastAPI(
+    title=settings.APP_NAME,
+    version=settings.APP_VERSION
+)
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -34,6 +37,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # ==== LAYER 1: Foundation & Reference Data ====
 app.include_router(roles.router)
@@ -66,4 +70,7 @@ app.include_router(ledger_entries.router)
 
 @app.get("/", tags=["Health"])
 def root():
-    return {"status": "ok", "app": settings.APP_NAME}
+    return {
+        "status": "ok",
+        "app": settings.APP_NAME
+    }
