@@ -46,6 +46,8 @@ app.include_router(withdrawals.router)
 app.include_router(transfers.router)
 app.include_router(interbank_transfers.router)
 
+# ==== LAYER 5: Financial Records & Ledger ====
+from app.routers import fee_records, interest_records, ledger_entries
 app.include_router(fee_records.router)
 app.include_router(interest_records.router)
 app.include_router(ledger_entries.router)
