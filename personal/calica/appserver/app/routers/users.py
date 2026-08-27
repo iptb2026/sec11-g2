@@ -15,12 +15,7 @@ router = APIRouter(
     dependencies=[Depends(require_roles("ADMIN"))]
 )
 
-@router.post(
-    "/",
-    response_model=UserOut,
-    status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_roles("ADMIN"))]
-)
+@router.post("/", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 def create_user(user: UserCreate, db: Session = Depends(get_db)):
     # role_id is a foreign key — the referenced role must already exist.
     role = db.query(Role).filter(Role.id == user.role_id).first()
