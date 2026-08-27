@@ -31,7 +31,7 @@ body::after {
 	height: 1px;
 	background: linear-gradient(90deg, rgba(0,0,0,0.06), rgba(0,0,0,0.02));
 	pointer-events: none;
-	z-index: 9999;
+	z-index: 1;
 }
 body::before { top: 0; }
 body::after { bottom: 0; }
@@ -58,6 +58,19 @@ body::after { bottom: 0; }
 }
 
 .login-avatar svg { width: 84px; height: 84px; }
+
+/* Position the login card lower so it's clearly visible below any top app bar */
+.login-page-wrapper {
+	display: flex;
+	align-items: flex-start;
+	justify-content: center;
+	padding-top: 48px;
+	min-height: calc(100vh - 48px);
+}
+
+@media (min-width: 900px) {
+	.login-card { margin-top: 18vh; }
+}
 
 .q-page .text-h5 {
 	font-weight: 600;

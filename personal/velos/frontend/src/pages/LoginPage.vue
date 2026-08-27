@@ -1,5 +1,5 @@
 <template>
-  <div class="q-pa-md">
+  <div class="q-pa-md login-page-wrapper">
     <q-card class="login-card q-pa-md">
       <div class="login-avatar">
         <!-- Simple user head with hair SVG illustration -->
