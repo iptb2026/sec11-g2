@@ -21,12 +21,43 @@ body {
 	padding: 24px;
 }
 
+/* Thin hairline at the very top and bottom of the viewport */
+body::before,
+body::after {
+	content: '';
+	position: fixed;
+	left: 0;
+	right: 0;
+	height: 1px;
+	background: linear-gradient(90deg, rgba(0,0,0,0.06), rgba(0,0,0,0.02));
+	pointer-events: none;
+	z-index: 9999;
+}
+body::before { top: 0; }
+body::after { bottom: 0; }
+
 /* Make auth card compact and visible */
 .q-page .q-card {
 	border-radius: 10px;
 	box-shadow: 0 8px 24px rgba(16,24,40,0.06);
 	overflow: hidden;
 }
+
+/* Login card specific tweaks */
+.login-card {
+	width: 420px;
+	max-width: calc(100% - 32px);
+	padding: 20px;
+}
+
+.login-avatar {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin-bottom: 12px;
+}
+
+.login-avatar svg { width: 84px; height: 84px; }
 
 .q-page .text-h5 {
 	font-weight: 600;
