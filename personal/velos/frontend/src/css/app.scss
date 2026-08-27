@@ -1,0 +1,91 @@
+// app global css
+
+/* Simple, clean baseline styles for local development */
+html, body, #q-app {
+	height: 100%;
+}
+
+body {
+	background: #f7f7f8;
+	color: #222;
+	font-family: 'Roboto', Arial, sans-serif;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+/* Center the Quasar app content */
+#q-app {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 24px;
+}
+
+/* Thin hairline at the very top and bottom of the viewport */
+body::before,
+body::after {
+	content: '';
+	position: fixed;
+	left: 0;
+	right: 0;
+	height: 1px;
+	background: linear-gradient(90deg, rgba(0,0,0,0.06), rgba(0,0,0,0.02));
+	pointer-events: none;
+	z-index: 1;
+}
+body::before { top: 0; }
+body::after { bottom: 0; }
+
+/* Make auth card compact and visible */
+.q-page .q-card {
+	border-radius: 10px;
+	box-shadow: 0 8px 24px rgba(16,24,40,0.06);
+	overflow: hidden;
+}
+
+/* Login card specific tweaks */
+.login-card {
+	width: 420px;
+	max-width: calc(100% - 32px);
+	padding: 20px;
+}
+
+.login-avatar {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin-bottom: 12px;
+}
+
+.login-avatar svg { width: 84px; height: 84px; }
+
+/* Position the login card lower so it's clearly visible below any top app bar */
+.login-page-wrapper {
+	display: flex;
+	align-items: flex-start;
+	justify-content: center;
+	padding-top: 48px;
+	min-height: calc(100vh - 48px);
+}
+
+@media (min-width: 900px) {
+	.login-card { margin-top: 18vh; }
+}
+
+.q-page .text-h5 {
+	font-weight: 600;
+}
+
+.q-input__inner, .q-input__control {
+	min-height: 44px;
+}
+
+.q-btn {
+	min-width: 120px;
+}
+
+/* Small responsive tweaks */
+@media (max-width: 600px) {
+	#q-app { padding: 12px; }
+	.q-page { padding: 8px; }
+}
