@@ -2,8 +2,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.core.security import get_current_user_model, require_roles
 from app.database.session import get_db
 from app.models.account import Account
+from app.models.user import User
 from app.models.withdrawal_limit import WithdrawalLimit
 from app.schemas.withdrawal_limit import WithdrawalLimitCreate, WithdrawalLimitUpdate, WithdrawalLimitOut
 
@@ -11,7 +13,11 @@ router = APIRouter(prefix="/withdrawal-limits", tags=["Layer 3 - Withdrawal Limi
 
 
 @router.post("/", response_model=WithdrawalLimitOut, status_code=status.HTTP_201_CREATED)
-def create_withdrawal_limit(data: WithdrawalLimitCreate, db: Session = Depends(get_db)):
+def create_withdrawal_limit(
+    data: WithdrawalLimitCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN", "STAFF")),
+):
     account = db.query(Account).filter(Account.id == data.account_id).first()
     if not account:
         raise HTTPException(status_code=400, detail="account_id does not exist")
@@ -29,12 +35,19 @@ def create_withdrawal_limit(data: WithdrawalLimitCreate, db: Session = Depends(g
 
 
 @router.get("/", response_model=list[WithdrawalLimitOut])
-def list_withdrawal_limits(db: Session = Depends(get_db)):
+def list_withdrawal_limits(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_model),
+):
     return db.query(WithdrawalLimit).all()
 
 
 @router.get("/{limit_id}", response_model=WithdrawalLimitOut)
-def get_withdrawal_limit(limit_id: int, db: Session = Depends(get_db)):
+def get_withdrawal_limit(
+    limit_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_model),
+):
     limit = db.query(WithdrawalLimit).filter(WithdrawalLimit.id == limit_id).first()
     if not limit:
         raise HTTPException(status_code=404, detail="Withdrawal limit not found")
@@ -42,7 +55,12 @@ def get_withdrawal_limit(limit_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/{limit_id}", response_model=WithdrawalLimitOut)
-def update_withdrawal_limit(limit_id: int, data: WithdrawalLimitUpdate, db: Session = Depends(get_db)):
+def update_withdrawal_limit(
+    limit_id: int,
+    data: WithdrawalLimitUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN", "STAFF")),
+):
     limit = db.query(WithdrawalLimit).filter(WithdrawalLimit.id == limit_id).first()
     if not limit:
         raise HTTPException(status_code=404, detail="Withdrawal limit not found")
@@ -56,7 +74,11 @@ def update_withdrawal_limit(limit_id: int, data: WithdrawalLimitUpdate, db: Sess
 
 
 @router.delete("/{limit_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_withdrawal_limit(limit_id: int, db: Session = Depends(get_db)):
+def delete_withdrawal_limit(
+    limit_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN", "STAFF")),
+):
     limit = db.query(WithdrawalLimit).filter(WithdrawalLimit.id == limit_id).first()
     if not limit:
         raise HTTPException(status_code=404, detail="Withdrawal limit not found")

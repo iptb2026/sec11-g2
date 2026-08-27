@@ -4,24 +4,26 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.core.security import get_current_user_model, require_roles
 from app.database.session import get_db
 from app.models.account import Account
+from app.models.role import Role
 from app.models.transfer import Transfer
+from app.models.user import User
 from app.schemas.transfer import TransferCreate, TransferOut
 
 router = APIRouter(prefix="/transfers", tags=["Layer 4 - Transfers"])
 
 
 @router.post("/", response_model=TransferOut, status_code=status.HTTP_201_CREATED)
-def create_transfer(transfer: TransferCreate, db: Session = Depends(get_db)):
+def create_transfer(
+    transfer: TransferCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_model),
+):
     if transfer.source_account_id == transfer.destination_account_id:
         raise HTTPException(status_code=400, detail="source and destination accounts must be different")
 
-    # Lock both accounts for the duration of this transaction so a
-    # simultaneous transfer touching either one can't read a stale balance.
-    # Locking order matters: always lock the lower id first, or two transfers
-    # running in opposite directions at the same time (A->B and B->A) could
-    # each be waiting on the row the other one is holding — a deadlock.
     first_id, second_id = sorted([transfer.source_account_id, transfer.destination_account_id])
     accounts_by_id = {
         a.id: a
@@ -34,6 +36,14 @@ def create_transfer(transfer: TransferCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="source_account_id does not exist")
     if not destination:
         raise HTTPException(status_code=400, detail="destination_account_id does not exist")
+
+    # Customer can only transfer out of their own account
+    user_role = db.query(Role).filter(Role.id == current_user.role_id).first()
+    if user_role and user_role.role_code == "CUSTOMER" and source.customer_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden: You can only transfer funds from your own account",
+        )
 
     existing = db.query(Transfer).filter(Transfer.transfer_reference == transfer.transfer_reference).first()
     if existing:
@@ -65,21 +75,47 @@ def create_transfer(transfer: TransferCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/", response_model=list[TransferOut])
-def list_transfers(db: Session = Depends(get_db)):
+def list_transfers(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_model),
+):
+    user_role = db.query(Role).filter(Role.id == current_user.role_id).first()
+    if user_role and user_role.role_code == "CUSTOMER":
+        user_account_ids = [a.id for a in db.query(Account).filter(Account.customer_id == current_user.id).all()]
+        return db.query(Transfer).filter(
+            (Transfer.source_account_id.in_(user_account_ids)) | (Transfer.destination_account_id.in_(user_account_ids))
+        ).all()
+
     return db.query(Transfer).all()
 
 
 @router.get("/{transfer_id}", response_model=TransferOut)
-def get_transfer(transfer_id: int, db: Session = Depends(get_db)):
+def get_transfer(
+    transfer_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_model),
+):
     transfer = db.query(Transfer).filter(Transfer.id == transfer_id).first()
     if not transfer:
         raise HTTPException(status_code=404, detail="Transfer not found")
+
+    user_role = db.query(Role).filter(Role.id == current_user.role_id).first()
+    if user_role and user_role.role_code == "CUSTOMER":
+        user_account_ids = [a.id for a in db.query(Account).filter(Account.customer_id == current_user.id).all()]
+        if transfer.source_account_id not in user_account_ids and transfer.destination_account_id not in user_account_ids:
+            raise HTTPException(status_code=403, detail="Forbidden: You do not have access to this transfer")
+
     return transfer
 
 
 @router.put("/{transfer_id}", response_model=TransferOut)
-def update_transfer(transfer_id: int, data: TransferCreate, db: Session = Depends(get_db)):
-    """NOTE: does not move any money back — see the Layer 4 guide."""
+def update_transfer(
+    transfer_id: int,
+    data: TransferCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN", "STAFF")),
+):
+    """NOTE: does not move any money back."""
     transfer = db.query(Transfer).filter(Transfer.id == transfer_id).first()
     if not transfer:
         raise HTTPException(status_code=404, detail="Transfer not found")
@@ -93,8 +129,12 @@ def update_transfer(transfer_id: int, data: TransferCreate, db: Session = Depend
 
 
 @router.delete("/{transfer_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_transfer(transfer_id: int, db: Session = Depends(get_db)):
-    """NOTE: does not move any money back — see the Layer 4 guide."""
+def delete_transfer(
+    transfer_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN", "STAFF")),
+):
+    """NOTE: does not move any money back."""
     transfer = db.query(Transfer).filter(Transfer.id == transfer_id).first()
     if not transfer:
         raise HTTPException(status_code=404, detail="Transfer not found")

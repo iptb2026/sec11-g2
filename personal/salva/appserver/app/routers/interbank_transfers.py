@@ -4,10 +4,13 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.core.security import get_current_user_model, require_roles
 from app.database.session import get_db
 from app.models.account import Account
 from app.models.bank import Bank
 from app.models.interbank_transfer import InterbankTransfer
+from app.models.role import Role
+from app.models.user import User
 from app.schemas.interbank_transfer import (
     InterbankTransferCreate,
     InterbankTransferStatusUpdate,
@@ -18,12 +21,22 @@ router = APIRouter(prefix="/interbank-transfers", tags=["Layer 4 - Interbank Tra
 
 
 @router.post("/", response_model=InterbankTransferOut, status_code=status.HTTP_201_CREATED)
-def create_interbank_transfer(transfer: InterbankTransferCreate, db: Session = Depends(get_db)):
-    # Lock the source account row for the duration of this transaction — see
-    # the same note in deposits.py / withdrawals.py.
+def create_interbank_transfer(
+    transfer: InterbankTransferCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_model),
+):
     source = db.query(Account).filter(Account.id == transfer.source_account_id).with_for_update().first()
     if not source:
         raise HTTPException(status_code=400, detail="source_account_id does not exist")
+
+    # Customer can only transfer out of their own account
+    user_role = db.query(Role).filter(Role.id == current_user.role_id).first()
+    if user_role and user_role.role_code == "CUSTOMER" and source.customer_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden: You can only transfer funds from your own account",
+        )
 
     bank = db.query(Bank).filter(Bank.id == transfer.target_bank_id).first()
     if not bank:
@@ -42,10 +55,6 @@ def create_interbank_transfer(transfer: InterbankTransferCreate, db: Session = D
     if source.available_balance < total_debit:
         raise HTTPException(status_code=400, detail="Insufficient balance to cover amount + transfer fee")
 
-    # Unlike an internal `transfer`, the destination bank is external — we
-    # can only debit our own side. The transfer starts PROCESSING (not
-    # SUCCESS) because settlement with the other bank isn't instant; use
-    # PUT /interbank-transfers/{id}/status to move it to SUCCESS/FAILED later.
     new_transfer = InterbankTransfer(**transfer.model_dump(), status="PROCESSING")
     db.add(new_transfer)
 
@@ -58,21 +67,43 @@ def create_interbank_transfer(transfer: InterbankTransferCreate, db: Session = D
 
 
 @router.get("/", response_model=list[InterbankTransferOut])
-def list_interbank_transfers(db: Session = Depends(get_db)):
+def list_interbank_transfers(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_model),
+):
+    user_role = db.query(Role).filter(Role.id == current_user.role_id).first()
+    if user_role and user_role.role_code == "CUSTOMER":
+        user_account_ids = [a.id for a in db.query(Account).filter(Account.customer_id == current_user.id).all()]
+        return db.query(InterbankTransfer).filter(InterbankTransfer.source_account_id.in_(user_account_ids)).all()
+
     return db.query(InterbankTransfer).all()
 
 
 @router.get("/{transfer_id}", response_model=InterbankTransferOut)
-def get_interbank_transfer(transfer_id: int, db: Session = Depends(get_db)):
+def get_interbank_transfer(
+    transfer_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_model),
+):
     transfer = db.query(InterbankTransfer).filter(InterbankTransfer.id == transfer_id).first()
     if not transfer:
         raise HTTPException(status_code=404, detail="Interbank transfer not found")
+
+    user_role = db.query(Role).filter(Role.id == current_user.role_id).first()
+    if user_role and user_role.role_code == "CUSTOMER":
+        account = db.query(Account).filter(Account.id == transfer.source_account_id).first()
+        if not account or account.customer_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Forbidden: You do not have access to this transfer")
+
     return transfer
 
 
 @router.put("/{transfer_id}/status", response_model=InterbankTransferOut)
 def update_interbank_transfer_status(
-    transfer_id: int, data: InterbankTransferStatusUpdate, db: Session = Depends(get_db)
+    transfer_id: int,
+    data: InterbankTransferStatusUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN", "STAFF")),
 ):
     """Moves a PROCESSING transfer to its final settlement status (SUCCESS/FAILED/REVERSED)."""
     transfer = db.query(InterbankTransfer).filter(InterbankTransfer.id == transfer_id).first()
@@ -89,8 +120,12 @@ def update_interbank_transfer_status(
 
 
 @router.delete("/{transfer_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_interbank_transfer(transfer_id: int, db: Session = Depends(get_db)):
-    """NOTE: does not move any money back — see the Layer 4 guide."""
+def delete_interbank_transfer(
+    transfer_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN", "STAFF")),
+):
+    """NOTE: does not move any money back."""
     transfer = db.query(InterbankTransfer).filter(InterbankTransfer.id == transfer_id).first()
     if not transfer:
         raise HTTPException(status_code=404, detail="Interbank transfer not found")

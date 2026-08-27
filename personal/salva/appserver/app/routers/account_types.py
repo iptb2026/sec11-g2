@@ -3,15 +3,21 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.db_utils import commit_or_409
+from app.core.security import get_current_user_model, require_roles
 from app.database.session import get_db
 from app.models.account_type import AccountType
+from app.models.user import User
 from app.schemas.account_type import AccountTypeCreate, AccountTypeOut
 
 router = APIRouter(prefix="/account-types", tags=["Layer 1 - Account Types"])
 
 
 @router.post("/", response_model=AccountTypeOut, status_code=status.HTTP_201_CREATED)
-def create_account_type(account_type: AccountTypeCreate, db: Session = Depends(get_db)):
+def create_account_type(
+    account_type: AccountTypeCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN")),
+):
     existing = db.query(AccountType).filter(AccountType.type_code == account_type.type_code).first()
     if existing:
         raise HTTPException(status_code=400, detail="type_code already exists")
@@ -24,12 +30,19 @@ def create_account_type(account_type: AccountTypeCreate, db: Session = Depends(g
 
 
 @router.get("/", response_model=list[AccountTypeOut])
-def list_account_types(db: Session = Depends(get_db)):
+def list_account_types(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_model),
+):
     return db.query(AccountType).all()
 
 
 @router.get("/{account_type_id}", response_model=AccountTypeOut)
-def get_account_type(account_type_id: int, db: Session = Depends(get_db)):
+def get_account_type(
+    account_type_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_model),
+):
     account_type = db.query(AccountType).filter(AccountType.id == account_type_id).first()
     if not account_type:
         raise HTTPException(status_code=404, detail="Account type not found")
@@ -37,7 +50,12 @@ def get_account_type(account_type_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/{account_type_id}", response_model=AccountTypeOut)
-def update_account_type(account_type_id: int, data: AccountTypeCreate, db: Session = Depends(get_db)):
+def update_account_type(
+    account_type_id: int,
+    data: AccountTypeCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN")),
+):
     account_type = db.query(AccountType).filter(AccountType.id == account_type_id).first()
     if not account_type:
         raise HTTPException(status_code=404, detail="Account type not found")
@@ -51,7 +69,11 @@ def update_account_type(account_type_id: int, data: AccountTypeCreate, db: Sessi
 
 
 @router.delete("/{account_type_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_account_type(account_type_id: int, db: Session = Depends(get_db)):
+def delete_account_type(
+    account_type_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN")),
+):
     account_type = db.query(AccountType).filter(AccountType.id == account_type_id).first()
     if not account_type:
         raise HTTPException(status_code=404, detail="Account type not found")
