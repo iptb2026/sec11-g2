@@ -35,9 +35,6 @@
         </div>
       </q-form>
 
-      <q-banner class="q-mt-md" dense>
-        Demo Accounts: admin@example.com / password123 — staff@example.com / password123 — customer@example.com / password123
-      </q-banner>
       <div class="text-center q-mt-md">
         <span>New to Velos?</span>
         <q-btn flat dense color="primary" label="Create account" to="/register" />
