@@ -2,6 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.core.security import get_current_user, require_roles
 from app.database.session import get_db
 from app.models.account import Account
 from app.models.deposit import Deposit
@@ -11,7 +12,12 @@ from app.schemas.deposit import DepositCreate, DepositOut
 router = APIRouter(prefix="/deposits", tags=["Layer 4 - Deposits"])
 
 
-@router.post("/", response_model=DepositOut, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=DepositOut,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_roles("ADMIN", "STAFF"))]
+)
 def create_deposit(deposit: DepositCreate, db: Session = Depends(get_db)):
     # .with_for_update() locks this account row until the commit below, so a
     # second request touching the same account has to wait its turn instead
@@ -41,20 +47,55 @@ def create_deposit(deposit: DepositCreate, db: Session = Depends(get_db)):
     return new_deposit
 
 
-@router.get("/", response_model=list[DepositOut])
+@router.get(
+    "/",
+    response_model=list[DepositOut],
+    dependencies=[Depends(require_roles("ADMIN", "STAFF"))]
+)
 def list_deposits(db: Session = Depends(get_db)):
     return db.query(Deposit).all()
 
 
 @router.get("/{deposit_id}", response_model=DepositOut)
-def get_deposit(deposit_id: int, db: Session = Depends(get_db)):
+def get_deposit(
+    deposit_id: int,
+    current_username: str = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     deposit = db.query(Deposit).filter(Deposit.id == deposit_id).first()
+
     if not deposit:
         raise HTTPException(status_code=404, detail="Deposit not found")
+
+    current_user = db.query(User).filter(
+        User.username == current_username
+    ).first()
+
+    if not current_user:
+        raise HTTPException(status_code=401, detail="User not found")
+
+    account = db.query(Account).filter(
+        Account.id == deposit.account_id
+    ).first()
+
+    if not account:
+        raise HTTPException(status_code=404, detail="Account not found")
+
+    # Customers can only view deposits belonging to their own account.
+    if account.customer_id != current_user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="You can only access deposits from your own account"
+        )
+
     return deposit
 
 
-@router.put("/{deposit_id}", response_model=DepositOut)
+@router.put(
+    "/{deposit_id}",
+    response_model=DepositOut,
+    dependencies=[Depends(require_roles("ADMIN", "STAFF"))]
+)
 def update_deposit(deposit_id: int, data: DepositCreate, db: Session = Depends(get_db)):
     """
     NOTE: this only edits the deposit record itself (e.g. fixing a typo in
@@ -73,8 +114,11 @@ def update_deposit(deposit_id: int, data: DepositCreate, db: Session = Depends(g
     db.refresh(deposit)
     return deposit
 
-
-@router.delete("/{deposit_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{deposit_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_roles("ADMIN", "STAFF"))]
+)
 def delete_deposit(deposit_id: int, db: Session = Depends(get_db)):
     """NOTE: does not reverse the account balance change either — see the Layer 4 guide."""
     deposit = db.query(Deposit).filter(Deposit.id == deposit_id).first()
