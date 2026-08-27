@@ -1,5 +1,5 @@
 # ==== LAYER 1: Foundation & Reference Data ====
-from sqlalchemy import Column, BigInteger, String, Enum, TIMESTAMP
+from sqlalchemy import Column, Integer, String, Enum, TIMESTAMP
 from sqlalchemy.sql import func
 
 from app.database.session import Base
@@ -8,7 +8,7 @@ from app.database.session import Base
 class Bank(Base):
     __tablename__ = "banks"
 
-    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     bank_code = Column(String(50), unique=True, nullable=False)
     swift_code = Column(String(50), nullable=True)
     bank_name = Column(String(150), nullable=False)
