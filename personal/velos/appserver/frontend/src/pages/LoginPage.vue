@@ -1,44 +1,48 @@
 <template>
-  <div class="q-pa-md login-page-wrapper">
-    <q-card class="login-card q-pa-md">
-      <div class="login-avatar">
-        <!-- Simple user head with hair SVG illustration -->
-        <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-          <defs>
-            <linearGradient id="g1" x1="0" x2="1">
-              <stop offset="0" stop-color="#6b7cff" />
-              <stop offset="1" stop-color="#52d0ff" />
-            </linearGradient>
-          </defs>
-          <circle cx="32" cy="30" r="16" fill="#fdeccf" />
-          <!-- hair -->
-          <path d="M10 28c4-10 18-14 22-9s10 6 14 9c0 0-2-12-14-16-14-4-22 6-22 16z" fill="url(#g1)" />
-          <!-- torso/shoulders -->
-          <path d="M8 56c6-8 20-8 24-8s18 0 24 8v0H8z" fill="#e6eef9" />
-        </svg>
-      </div>
+  <div class="login-page-wrapper">
+    <div class="login-card">
+      <section class="login-brand-panel">
+        <div class="brand-mark">M</div>
+        <div class="brand-name">Mini Bank</div>
+        <h1>Money management<br />made personal.</h1>
+        <p>Securely access your accounts and keep your everyday banking in one clear place.</p>
+        <div class="brand-line"></div>
+        <span class="brand-caption">Simple. Secure. Yours.</span>
+      </section>
 
-      <div class="text-h5">Mini Bank — Sign in</div>
-
-      <q-form @submit.prevent="submit">
-        <q-input v-model="email" label="Email" type="email" :rules="[val => !!val || 'Email required']" />
-        <q-input v-model="password" label="Password" :type="show ? 'text' : 'password'" :rules="[val => !!val || 'Password required']">
-          <template v-slot:append>
-            <q-icon :name="show ? 'visibility_off' : 'visibility'" class="cursor-pointer" @click="show = !show" />
-          </template>
-        </q-input>
-
-        <div class="row items-center q-gutter-sm">
-          <q-checkbox v-model="remember" label="Remember me" />
-          <q-btn label="Login" type="submit" color="primary" :loading="loading" />
+      <section class="login-form-panel">
+        <div class="login-avatar" aria-hidden="true">
+          <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" focusable="false">
+            <circle cx="32" cy="30" r="16" fill="#fdeccf" />
+            <path d="M10 28c4-10 18-14 22-9s10 6 14 9c0 0-2-12-14-16-14-4-22 6-22 16z" fill="#2d3b55" />
+            <path d="M8 56c6-8 20-8 24-8s18 0 24 8H8z" fill="#d7e4f1" />
+          </svg>
         </div>
-      </q-form>
+        <div class="login-eyebrow">Welcome back</div>
+        <div class="text-h5">Sign in to your account</div>
+        <p class="login-subtitle">Enter your details to continue.</p>
 
-      <div class="text-center q-mt-md">
-        <span>New to Velos?</span>
-        <q-btn flat dense color="primary" label="Create account" to="/register" />
-      </div>
-    </q-card>
+        <q-form class="login-form" @submit.prevent="submit">
+          <q-input v-model="email" outlined label="Email address" type="email" :rules="[val => !!val || 'Email required']" />
+          <q-input v-model="password" outlined label="Password" :type="show ? 'text' : 'password'" :rules="[val => !!val || 'Password required']">
+            <template v-slot:append>
+              <q-icon :name="show ? 'visibility_off' : 'visibility'" class="cursor-pointer" @click="show = !show" />
+            </template>
+          </q-input>
+
+          <div class="login-options">
+            <q-checkbox v-model="remember" label="Remember me" />
+            <q-btn flat dense label="Forgot password?" color="primary" disable />
+          </div>
+          <q-btn class="login-submit full-width" label="Sign in" type="submit" color="primary" :loading="loading" />
+        </q-form>
+
+        <div class="login-register">
+          <span>New to Mini Bank?</span>
+          <q-btn flat dense color="primary" label="Create account" to="/register" />
+        </div>
+      </section>
+    </div>
   </div>
 </template>
 

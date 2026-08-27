@@ -1,0 +1,116 @@
+// app global css
+
+/* Mini Bank global theme */
+html, body, #q-app {
+	height: 100%;
+}
+
+body {
+	background: #eef2f5;
+	color: #172033;
+	font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+/* Center the Quasar app content */
+#q-app {
+	min-height: 100%;
+}
+
+/* Thin hairline at the very top and bottom of the viewport */
+body::before,
+body::after {
+	content: '';
+	position: fixed;
+	left: 0;
+	right: 0;
+	height: 1px;
+	background: linear-gradient(90deg, rgba(0,0,0,0.06), rgba(0,0,0,0.02));
+	pointer-events: none;
+	z-index: 1;
+}
+body::before { top: 0; }
+body::after { bottom: 0; }
+
+/* Auth page */
+.auth-page {
+	min-height: 100vh;
+}
+
+.login-page-wrapper {
+	min-height: 100vh;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 40px 24px;
+	background-color: #eef2f5;
+	background-image: linear-gradient(135deg, rgba(255,255,255,0.7) 25%, transparent 25%), linear-gradient(315deg, rgba(255,255,255,0.5) 25%, transparent 25%);
+	background-position: 0 0, 18px 18px;
+	background-size: 36px 36px;
+}
+
+.login-card {
+	display: grid;
+	grid-template-columns: minmax(260px, 0.9fr) minmax(380px, 1.1fr);
+	width: min(900px, 100%);
+	min-height: 560px;
+	background: #fff;
+	border: 1px solid rgba(23, 32, 51, 0.08);
+	border-radius: 18px;
+	box-shadow: 0 24px 60px rgba(37, 55, 77, 0.14);
+	overflow: hidden;
+}
+
+.login-brand-panel {
+	padding: 54px 44px;
+	background: #243b53;
+	color: #fff;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+}
+
+.brand-mark {
+	width: 44px;
+	height: 44px;
+	display: grid;
+	place-items: center;
+	border: 1px solid rgba(255,255,255,0.45);
+	border-radius: 12px;
+	font-size: 22px;
+	font-weight: 700;
+}
+
+.brand-name { margin-top: 16px; font-size: 14px; letter-spacing: 1.5px; text-transform: uppercase; }
+.login-brand-panel h1 { margin: auto 0 18px; font-family: Georgia, serif; font-size: clamp(30px, 4vw, 42px); line-height: 1.08; font-weight: 400; }
+.login-brand-panel p { max-width: 270px; margin: 0; color: #c9d7e5; line-height: 1.65; }
+.brand-line { width: 44px; height: 3px; margin-top: 36px; background: #efb366; }
+.brand-caption { margin-top: 12px; color: #c9d7e5; font-size: 12px; }
+
+.login-form-panel { padding: 54px 64px; display: flex; flex-direction: column; justify-content: center; }
+.login-avatar { margin-bottom: 18px; }
+.login-avatar svg { width: 62px; height: 62px; }
+.login-eyebrow { margin-bottom: 8px; color: #d0873e; font-size: 12px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; }
+.q-page .text-h5 { color: #172033; font-family: Georgia, serif; font-weight: 400; }
+.login-subtitle { margin: 8px 0 28px; color: #718096; }
+.login-form .q-field { margin-bottom: 16px; }
+.login-form .q-field--outlined .q-field__control { border-radius: 9px; }
+.login-options { display: flex; align-items: center; justify-content: space-between; margin: 2px 0 20px; }
+.login-options .q-btn { min-width: auto; padding: 0; font-size: 12px; }
+.login-submit { height: 48px; border-radius: 9px; font-weight: 700; letter-spacing: 0.2px; }
+.login-register { margin-top: 28px; color: #718096; text-align: center; font-size: 13px; }
+.login-register .q-btn { min-width: auto; }
+
+.q-input__inner, .q-input__control {
+	min-height: 44px;
+}
+
+@media (max-width: 600px) {
+	.login-page-wrapper { padding: 20px 12px; }
+	.login-card { display: block; min-height: 0; }
+	.login-brand-panel { min-height: 250px; padding: 30px; }
+	.login-brand-panel h1 { margin-top: 48px; font-size: 32px; }
+	.login-form-panel { padding: 36px 26px; }
+	.login-options { align-items: flex-start; flex-direction: column; gap: 4px; }
+}
