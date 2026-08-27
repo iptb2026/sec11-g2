@@ -5,16 +5,23 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.db_utils import commit_or_409
+from app.core.security import get_current_user, require_roles
 from app.database.session import get_db
 from app.models.account import Account
 from app.models.account_type import AccountType
+from app.models.role import Role
 from app.models.user import User
 from app.schemas.account import AccountCreate, AccountUpdate, AccountOut
 
 router = APIRouter(prefix="/accounts", tags=["Layer 3 - Accounts"])
 
 
-@router.post("/", response_model=AccountOut, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=AccountOut,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_roles("ADMIN"))]
+)
 def create_account(account: AccountCreate, db: Session = Depends(get_db)):
     customer = db.query(User).filter(User.id == account.customer_id).first()
     if not customer:
@@ -44,20 +51,64 @@ def create_account(account: AccountCreate, db: Session = Depends(get_db)):
     return new_account
 
 
-@router.get("/", response_model=list[AccountOut])
+@router.get(
+    "/",
+    response_model=list[AccountOut],
+    dependencies=[Depends(require_roles("ADMIN", "STAFF"))]
+)
 def list_accounts(db: Session = Depends(get_db)):
     return db.query(Account).all()
 
 
 @router.get("/{account_id}", response_model=AccountOut)
-def get_account(account_id: int, db: Session = Depends(get_db)):
+def get_account(
+    account_id: int,
+    current_username: str = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     account = db.query(Account).filter(Account.id == account_id).first()
+
     if not account:
-        raise HTTPException(status_code=404, detail="Account not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Account not found"
+        )
+
+    current_user = db.query(User).filter(
+        User.username == current_username
+    ).first()
+
+    if not current_user:
+        raise HTTPException(
+            status_code=401,
+            detail="User not found"
+        )
+
+    role = db.query(Role).filter(
+        Role.id == current_user.role_id
+    ).first()
+
+    if not role:
+        raise HTTPException(
+            status_code=403,
+            detail="User role not found"
+        )
+
+    # Customers can only view their own account.
+    if role.role_code == "CUSTOMER" and account.customer_id != current_user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="You can only access your own account"
+        )
+
     return account
 
 
-@router.put("/{account_id}", response_model=AccountOut)
+@router.put(
+    "/{account_id}",
+    response_model=AccountOut,
+    dependencies=[Depends(require_roles("ADMIN"))]
+)
 def update_account(account_id: int, data: AccountUpdate, db: Session = Depends(get_db)):
     account = db.query(Account).filter(Account.id == account_id).first()
     if not account:
@@ -82,7 +133,11 @@ def update_account(account_id: int, data: AccountUpdate, db: Session = Depends(g
     return account
 
 
-@router.delete("/{account_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{account_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_roles("ADMIN"))]
+)
 def delete_account(account_id: int, db: Session = Depends(get_db)):
     account = db.query(Account).filter(Account.id == account_id).first()
     if not account:
