@@ -1,4 +1,3 @@
-# ==== LAYER 3: Account Configuration ====
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -20,17 +19,18 @@ def create_account(account: AccountCreate, db: Session = Depends(get_db)):
     if not customer:
         raise HTTPException(status_code=400, detail="customer_id does not exist")
 
-    account_type = db.query(AccountType).filter(AccountType.id == account.account_type_id).first()
+    account_type = db.query(AccountType).filter(
+        AccountType.id == account.account_type_id
+    ).first()
     if not account_type:
         raise HTTPException(status_code=400, detail="account_type_id does not exist")
 
-    existing = db.query(Account).filter(Account.account_number == account.account_number).first()
+    existing = db.query(Account).filter(
+        Account.account_number == account.account_number
+    ).first()
     if existing:
         raise HTTPException(status_code=400, detail="account_number already exists")
 
-    # The starting balance comes from the account type's opening_deposit —
-    # never from the client. This is the same "don't trust the client with
-    # money fields" lesson from AccountCreate in the old single-table version.
     starting_balance = account_type.opening_deposit
 
     new_account = Account(
@@ -38,28 +38,54 @@ def create_account(account: AccountCreate, db: Session = Depends(get_db)):
         available_balance=starting_balance,
         ledger_balance=starting_balance,
     )
+
     db.add(new_account)
     db.commit()
     db.refresh(new_account)
+
     return new_account
 
 
+from typing import Optional
+from app.core.security import get_current_user
+
 @router.get("/", response_model=list[AccountOut])
-def list_accounts(db: Session = Depends(get_db)):
-    return db.query(Account).all()
+def list_accounts(customer_id: Optional[int] = None, db: Session = Depends(get_db)):
+    query = db.query(Account)
+    if customer_id is not None:
+        query = query.filter(Account.customer_id == customer_id)
+    return query.all()
+
+
+@router.get("/my", response_model=list[AccountOut])
+def get_my_accounts(
+    username: str = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    user = db.query(User).filter(User.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return db.query(Account).filter(Account.customer_id == user.id).all()
 
 
 @router.get("/{account_id}", response_model=AccountOut)
 def get_account(account_id: int, db: Session = Depends(get_db)):
     account = db.query(Account).filter(Account.id == account_id).first()
+
     if not account:
         raise HTTPException(status_code=404, detail="Account not found")
+
     return account
 
 
 @router.put("/{account_id}", response_model=AccountOut)
-def update_account(account_id: int, data: AccountUpdate, db: Session = Depends(get_db)):
+def update_account(
+    account_id: int,
+    data: AccountUpdate,
+    db: Session = Depends(get_db)
+):
     account = db.query(Account).filter(Account.id == account_id).first()
+
     if not account:
         raise HTTPException(status_code=404, detail="Account not found")
 
@@ -67,7 +93,9 @@ def update_account(account_id: int, data: AccountUpdate, db: Session = Depends(g
     if not customer:
         raise HTTPException(status_code=400, detail="customer_id does not exist")
 
-    account_type = db.query(AccountType).filter(AccountType.id == data.account_type_id).first()
+    account_type = db.query(AccountType).filter(
+        AccountType.id == data.account_type_id
+    ).first()
     if not account_type:
         raise HTTPException(status_code=400, detail="account_type_id does not exist")
 
@@ -79,14 +107,20 @@ def update_account(account_id: int, data: AccountUpdate, db: Session = Depends(g
 
     db.commit()
     db.refresh(account)
+
     return account
 
 
 @router.delete("/{account_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_account(account_id: int, db: Session = Depends(get_db)):
     account = db.query(Account).filter(Account.id == account_id).first()
+
     if not account:
         raise HTTPException(status_code=404, detail="Account not found")
 
     db.delete(account)
-    commit_or_409(db, "Cannot delete this account — related transactions or records still reference it")
+
+    commit_or_409(
+        db,
+        "Cannot delete this account — related transactions or records still reference it"
+    )

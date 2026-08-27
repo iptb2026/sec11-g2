@@ -16,7 +16,6 @@ class LedgerEntryCreate(BaseModel):
     debit_amount: Decimal = Decimal("0.00")
     credit_amount: Decimal = Decimal("0.00")
     transaction_date: datetime = Field(default_factory=datetime.utcnow)
-    # balance_after is NOT accepted here — see the router for why.
 
 
 class LedgerEntryOut(BaseModel):

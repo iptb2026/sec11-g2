@@ -14,11 +14,12 @@ router = APIRouter(prefix="/withdrawals", tags=["Layer 4 - Withdrawals"])
 
 @router.post("/", response_model=WithdrawalOut, status_code=status.HTTP_201_CREATED)
 def create_withdrawal(withdrawal: WithdrawalCreate, db: Session = Depends(get_db)):
-    # Lock the account row for the duration of this transaction — without
-    # this, two withdrawals submitted at nearly the same moment could both
-    # read the same starting balance and one of their deductions would be
-    # silently lost (a "lost update").
-    account = db.query(Account).filter(Account.id == withdrawal.account_id).with_for_update().first()
+    account = (
+        db.query(Account)
+        .filter(Account.id == withdrawal.account_id)
+        .with_for_update()
+        .first()
+    )
     if not account:
         raise HTTPException(status_code=400, detail="account_id does not exist")
 
@@ -27,7 +28,11 @@ def create_withdrawal(withdrawal: WithdrawalCreate, db: Session = Depends(get_db
         if not user:
             raise HTTPException(status_code=400, detail="approved_by_user_id does not exist")
 
-    existing = db.query(Withdrawal).filter(Withdrawal.reference_number == withdrawal.reference_number).first()
+    existing = (
+        db.query(Withdrawal)
+        .filter(Withdrawal.reference_number == withdrawal.reference_number)
+        .first()
+    )
     if existing:
         raise HTTPException(status_code=400, detail="reference_number already exists")
 
@@ -37,10 +42,13 @@ def create_withdrawal(withdrawal: WithdrawalCreate, db: Session = Depends(get_db
     if account.available_balance < withdrawal.amount:
         raise HTTPException(status_code=400, detail="Insufficient balance")
 
-    # If this account has a daily withdrawal limit (Layer 3), enforce it.
-    # Also locked, for the same reason as the account row above.
-    limit = db.query(WithdrawalLimit).filter(WithdrawalLimit.account_id == account.id).with_for_update().first()
-    if limit and (limit.daily_used_amount + withdrawal.amount) > limit.daily_limit_amount:
+    limit = (
+        db.query(WithdrawalLimit)
+        .filter(WithdrawalLimit.account_id == account.id)
+        .with_for_update()
+        .first()
+    )
+    if limit and (limit.daily_used_amount + withdrawal.amount > limit.daily_limit_amount):
         raise HTTPException(status_code=400, detail="This withdrawal would exceed the daily withdrawal limit")
 
     new_withdrawal = Withdrawal(**withdrawal.model_dump())
@@ -48,6 +56,7 @@ def create_withdrawal(withdrawal: WithdrawalCreate, db: Session = Depends(get_db
 
     account.available_balance -= withdrawal.amount
     account.ledger_balance -= withdrawal.amount
+
     if limit:
         limit.daily_used_amount += withdrawal.amount
 
@@ -56,9 +65,14 @@ def create_withdrawal(withdrawal: WithdrawalCreate, db: Session = Depends(get_db
     return new_withdrawal
 
 
+from typing import Optional
+
 @router.get("/", response_model=list[WithdrawalOut])
-def list_withdrawals(db: Session = Depends(get_db)):
-    return db.query(Withdrawal).all()
+def list_withdrawals(account_id: Optional[int] = None, db: Session = Depends(get_db)):
+    query = db.query(Withdrawal)
+    if account_id is not None:
+        query = query.filter(Withdrawal.account_id == account_id)
+    return query.all()
 
 
 @router.get("/{withdrawal_id}", response_model=WithdrawalOut)
@@ -71,14 +85,12 @@ def get_withdrawal(withdrawal_id: int, db: Session = Depends(get_db)):
 
 @router.put("/{withdrawal_id}", response_model=WithdrawalOut)
 def update_withdrawal(withdrawal_id: int, data: WithdrawalCreate, db: Session = Depends(get_db)):
-    """NOTE: does not re-adjust the account balance or the daily limit usage — see the Layer 4 guide."""
     withdrawal = db.query(Withdrawal).filter(Withdrawal.id == withdrawal_id).first()
     if not withdrawal:
         raise HTTPException(status_code=404, detail="Withdrawal not found")
 
     for field, value in data.model_dump().items():
         setattr(withdrawal, field, value)
-
     db.commit()
     db.refresh(withdrawal)
     return withdrawal
@@ -86,10 +98,8 @@ def update_withdrawal(withdrawal_id: int, data: WithdrawalCreate, db: Session = 
 
 @router.delete("/{withdrawal_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_withdrawal(withdrawal_id: int, db: Session = Depends(get_db)):
-    """NOTE: does not reverse the account balance or the daily limit usage — see the Layer 4 guide."""
     withdrawal = db.query(Withdrawal).filter(Withdrawal.id == withdrawal_id).first()
     if not withdrawal:
         raise HTTPException(status_code=404, detail="Withdrawal not found")
-
     db.delete(withdrawal)
     db.commit()

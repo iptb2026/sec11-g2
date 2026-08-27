@@ -19,8 +19,6 @@ router = APIRouter(prefix="/interbank-transfers", tags=["Layer 4 - Interbank Tra
 
 @router.post("/", response_model=InterbankTransferOut, status_code=status.HTTP_201_CREATED)
 def create_interbank_transfer(transfer: InterbankTransferCreate, db: Session = Depends(get_db)):
-    # Lock the source account row for the duration of this transaction — see
-    # the same note in deposits.py / withdrawals.py.
     source = db.query(Account).filter(Account.id == transfer.source_account_id).with_for_update().first()
     if not source:
         raise HTTPException(status_code=400, detail="source_account_id does not exist")
@@ -29,9 +27,7 @@ def create_interbank_transfer(transfer: InterbankTransferCreate, db: Session = D
     if not bank:
         raise HTTPException(status_code=400, detail="target_bank_id does not exist")
 
-    existing = db.query(InterbankTransfer).filter(
-        InterbankTransfer.reference_number == transfer.reference_number
-    ).first()
+    existing = db.query(InterbankTransfer).filter(InterbankTransfer.reference_number == transfer.reference_number).first()
     if existing:
         raise HTTPException(status_code=400, detail="reference_number already exists")
 
@@ -42,10 +38,6 @@ def create_interbank_transfer(transfer: InterbankTransferCreate, db: Session = D
     if source.available_balance < total_debit:
         raise HTTPException(status_code=400, detail="Insufficient balance to cover amount + transfer fee")
 
-    # Unlike an internal `transfer`, the destination bank is external — we
-    # can only debit our own side. The transfer starts PROCESSING (not
-    # SUCCESS) because settlement with the other bank isn't instant; use
-    # PUT /interbank-transfers/{id}/status to move it to SUCCESS/FAILED later.
     new_transfer = InterbankTransfer(**transfer.model_dump(), status="PROCESSING")
     db.add(new_transfer)
 
@@ -71,10 +63,7 @@ def get_interbank_transfer(transfer_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/{transfer_id}/status", response_model=InterbankTransferOut)
-def update_interbank_transfer_status(
-    transfer_id: int, data: InterbankTransferStatusUpdate, db: Session = Depends(get_db)
-):
-    """Moves a PROCESSING transfer to its final settlement status (SUCCESS/FAILED/REVERSED)."""
+def update_interbank_transfer_status(transfer_id: int, data: InterbankTransferStatusUpdate, db: Session = Depends(get_db)):
     transfer = db.query(InterbankTransfer).filter(InterbankTransfer.id == transfer_id).first()
     if not transfer:
         raise HTTPException(status_code=404, detail="Interbank transfer not found")
@@ -82,7 +71,6 @@ def update_interbank_transfer_status(
     transfer.status = data.status
     if data.status in ("SUCCESS", "FAILED", "REVERSED"):
         transfer.completed_at = datetime.utcnow()
-
     db.commit()
     db.refresh(transfer)
     return transfer
@@ -90,10 +78,8 @@ def update_interbank_transfer_status(
 
 @router.delete("/{transfer_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_interbank_transfer(transfer_id: int, db: Session = Depends(get_db)):
-    """NOTE: does not move any money back — see the Layer 4 guide."""
     transfer = db.query(InterbankTransfer).filter(InterbankTransfer.id == transfer_id).first()
     if not transfer:
         raise HTTPException(status_code=404, detail="Interbank transfer not found")
-
     db.delete(transfer)
     db.commit()

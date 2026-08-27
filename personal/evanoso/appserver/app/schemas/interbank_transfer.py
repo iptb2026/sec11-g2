@@ -17,7 +17,14 @@ class InterbankTransferCreate(BaseModel):
 
 
 class InterbankTransferStatusUpdate(BaseModel):
-    status: Literal["PENDING", "VERIFIED", "PROCESSING", "SUCCESS", "FAILED", "REVERSED"]
+    status: Literal[
+        "PENDING",
+        "VERIFIED",
+        "PROCESSING",
+        "SUCCESS",
+        "FAILED",
+        "REVERSED",
+    ]
 
 
 class InterbankTransferOut(BaseModel):

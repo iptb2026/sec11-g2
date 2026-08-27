@@ -17,16 +17,15 @@ def create_transfer(transfer: TransferCreate, db: Session = Depends(get_db)):
     if transfer.source_account_id == transfer.destination_account_id:
         raise HTTPException(status_code=400, detail="source and destination accounts must be different")
 
-    # Lock both accounts for the duration of this transaction so a
-    # simultaneous transfer touching either one can't read a stale balance.
-    # Locking order matters: always lock the lower id first, or two transfers
-    # running in opposite directions at the same time (A->B and B->A) could
-    # each be waiting on the row the other one is holding — a deadlock.
     first_id, second_id = sorted([transfer.source_account_id, transfer.destination_account_id])
     accounts_by_id = {
-        a.id: a
-        for a in db.query(Account).filter(Account.id.in_([first_id, second_id])).with_for_update().all()
+        account.id: account
+        for account in db.query(Account)
+        .filter(Account.id.in_([first_id, second_id]))
+        .with_for_update()
+        .all()
     }
+
     source = accounts_by_id.get(transfer.source_account_id)
     destination = accounts_by_id.get(transfer.destination_account_id)
 
@@ -48,12 +47,10 @@ def create_transfer(transfer: TransferCreate, db: Session = Depends(get_db)):
     new_transfer = Transfer(
         **transfer.model_dump(),
         status="SUCCESS",
-        completed_at=datetime.utcnow(),
+        completed_at=datetime.utcnow()
     )
     db.add(new_transfer)
 
-    # Move the money: debit source, credit destination — both accounts,
-    # same request, same commit.
     source.available_balance -= transfer.amount
     source.ledger_balance -= transfer.amount
     destination.available_balance += transfer.amount
@@ -64,9 +61,16 @@ def create_transfer(transfer: TransferCreate, db: Session = Depends(get_db)):
     return new_transfer
 
 
+from typing import Optional
+
 @router.get("/", response_model=list[TransferOut])
-def list_transfers(db: Session = Depends(get_db)):
-    return db.query(Transfer).all()
+def list_transfers(account_id: Optional[int] = None, db: Session = Depends(get_db)):
+    query = db.query(Transfer)
+    if account_id is not None:
+        query = query.filter(
+            (Transfer.source_account_id == account_id) | (Transfer.destination_account_id == account_id)
+        )
+    return query.all()
 
 
 @router.get("/{transfer_id}", response_model=TransferOut)
@@ -79,14 +83,12 @@ def get_transfer(transfer_id: int, db: Session = Depends(get_db)):
 
 @router.put("/{transfer_id}", response_model=TransferOut)
 def update_transfer(transfer_id: int, data: TransferCreate, db: Session = Depends(get_db)):
-    """NOTE: does not move any money back — see the Layer 4 guide."""
     transfer = db.query(Transfer).filter(Transfer.id == transfer_id).first()
     if not transfer:
         raise HTTPException(status_code=404, detail="Transfer not found")
 
     for field, value in data.model_dump().items():
         setattr(transfer, field, value)
-
     db.commit()
     db.refresh(transfer)
     return transfer
@@ -94,10 +96,8 @@ def update_transfer(transfer_id: int, data: TransferCreate, db: Session = Depend
 
 @router.delete("/{transfer_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_transfer(transfer_id: int, db: Session = Depends(get_db)):
-    """NOTE: does not move any money back — see the Layer 4 guide."""
     transfer = db.query(Transfer).filter(Transfer.id == transfer_id).first()
     if not transfer:
         raise HTTPException(status_code=404, detail="Transfer not found")
-
     db.delete(transfer)
     db.commit()

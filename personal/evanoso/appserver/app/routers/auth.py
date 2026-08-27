@@ -6,11 +6,12 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.core.security import check_password, create_token, oauth2_scheme
+from app.core.security import check_password, create_token, get_current_user, oauth2_scheme
 from app.database.session import get_db
+from app.models.role import Role
 from app.models.session import UserSession
 from app.models.user import User
-from app.schemas.auth import Token
+from app.schemas.auth import Token, UserMeOut
 
 router = APIRouter(prefix="/auth", tags=["Layer 2 - Auth"])
 
@@ -48,6 +49,32 @@ def login(
 
     db.commit()
     return Token(access_token=token)
+
+
+@router.get("/me", response_model=UserMeOut)
+def get_me(
+    username: str = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Return the currently authenticated user's profile including role info."""
+    user = db.query(User).filter(User.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    role = db.query(Role).filter(Role.id == user.role_id).first()
+
+    return UserMeOut(
+        id=user.id,
+        username=user.username,
+        email=user.email,
+        first_name=user.first_name,
+        middle_name=user.middle_name,
+        last_name=user.last_name,
+        role_id=user.role_id,
+        role_code=role.role_code if role else "UNKNOWN",
+        role_name=role.role_name if role else "Unknown",
+        account_status=user.account_status,
+    )
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)

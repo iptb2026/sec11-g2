@@ -13,7 +13,6 @@ router = APIRouter(prefix="/interest-records", tags=["Layer 5 - Interest Records
 
 @router.post("/", response_model=InterestRecordOut, status_code=status.HTTP_201_CREATED)
 def create_interest_record(record: InterestRecordCreate, db: Session = Depends(get_db)):
-    # Lock the account row — see the same note in deposits.py / withdrawals.py.
     account = db.query(Account).filter(Account.id == record.account_id).with_for_update().first()
     if not account:
         raise HTTPException(status_code=400, detail="account_id does not exist")
@@ -22,8 +21,6 @@ def create_interest_record(record: InterestRecordCreate, db: Session = Depends(g
     if not policy:
         raise HTTPException(status_code=400, detail="policy_id does not exist")
 
-    # Snapshot the balance before and after crediting — computed by the
-    # server, not supplied by the client.
     balance_before = account.available_balance
     account.available_balance += record.amount_credited
     account.ledger_balance += record.amount_credited
@@ -35,7 +32,6 @@ def create_interest_record(record: InterestRecordCreate, db: Session = Depends(g
         balance_after=balance_after,
     )
     db.add(new_record)
-
     db.commit()
     db.refresh(new_record)
     return new_record
@@ -56,10 +52,8 @@ def get_interest_record(record_id: int, db: Session = Depends(get_db)):
 
 @router.delete("/{record_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_interest_record(record_id: int, db: Session = Depends(get_db)):
-    """NOTE: does not reverse the account balance change."""
     record = db.query(InterestRecord).filter(InterestRecord.id == record_id).first()
     if not record:
         raise HTTPException(status_code=404, detail="Interest record not found")
-
     db.delete(record)
     db.commit()

@@ -1,9 +1,6 @@
-# ==== LAYER 4: Transactions ====
 from sqlalchemy import Column, BigInteger, String, Text, DECIMAL, Enum, DateTime, TIMESTAMP, ForeignKey
 from sqlalchemy.sql import func
-
 from app.database.session import Base
-
 
 class Deposit(Base):
     __tablename__ = "deposits"

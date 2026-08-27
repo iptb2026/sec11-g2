@@ -1,10 +1,7 @@
-# ==== LAYER 3: Account Configuration ====
 from datetime import date
 from decimal import Decimal
 from typing import Optional, Literal
-
 from pydantic import BaseModel
-
 
 class InterestPolicyCreate(BaseModel):
     account_type_id: int
@@ -13,7 +10,6 @@ class InterestPolicyCreate(BaseModel):
     compounding_frequency: Literal["DAILY", "MONTHLY", "QUARTERLY", "YEARLY"] = "MONTHLY"
     effective_date: date
     expiration_date: Optional[date] = None
-
 
 class InterestPolicyOut(BaseModel):
     id: int

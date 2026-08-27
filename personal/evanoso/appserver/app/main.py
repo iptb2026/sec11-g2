@@ -19,14 +19,17 @@ from app.routers import deposits, withdrawals, transfers, interbank_transfers
 # ==== LAYER 5: Financial Records & Ledger ====
 from app.routers import fee_records, interest_records, ledger_entries
 
+
 # Creates tables if they don't already exist
-Base.metadata.create_all(bind=engine)
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception as e:
+    print(f"[Database] Connection warning at startup: {e}")
 
 app = FastAPI(title=settings.APP_NAME, version=settings.APP_VERSION)
 
 # Allows the Quasar frontend (a different origin/port, e.g. http://localhost:9000)
-# to call this API from the browser. Wide open here since this is a learning
-# project with no real users; a production app would restrict allow_origins.
+# to call this API from the browser.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

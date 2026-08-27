@@ -1,4 +1,3 @@
-# ==== LAYER 3: Account Configuration ====
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -8,7 +7,10 @@ from app.models.account_type import AccountType
 from app.models.interest_policy import InterestPolicy
 from app.schemas.interest_policy import InterestPolicyCreate, InterestPolicyOut
 
-router = APIRouter(prefix="/interest-policies", tags=["Layer 3 - Interest Policies"])
+router = APIRouter(
+    prefix="/interest-policies",
+    tags=["Layer 3 - Interest Policies"]
+)
 
 
 @router.post("/", response_model=InterestPolicyOut, status_code=status.HTTP_201_CREATED)
@@ -49,7 +51,6 @@ def update_interest_policy(policy_id: int, data: InterestPolicyCreate, db: Sessi
 
     for field, value in data.model_dump().items():
         setattr(policy, field, value)
-
     db.commit()
     db.refresh(policy)
     return policy
@@ -60,6 +61,5 @@ def delete_interest_policy(policy_id: int, db: Session = Depends(get_db)):
     policy = db.query(InterestPolicy).filter(InterestPolicy.id == policy_id).first()
     if not policy:
         raise HTTPException(status_code=404, detail="Interest policy not found")
-
     db.delete(policy)
     commit_or_409(db, "Cannot delete this interest policy — one or more interest records still reference it")

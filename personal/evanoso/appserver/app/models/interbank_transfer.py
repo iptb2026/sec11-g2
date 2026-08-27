@@ -16,6 +16,9 @@ class InterbankTransfer(Base):
     reference_number = Column(String(100), unique=True, nullable=False)
     amount = Column(DECIMAL(18, 2), nullable=False)
     transfer_fee = Column(DECIMAL(18, 2), default=0.00)
-    status = Column(Enum("PENDING", "VERIFIED", "PROCESSING", "SUCCESS", "FAILED", "REVERSED"), default="PENDING")
+    status = Column(
+        Enum("PENDING", "VERIFIED", "PROCESSING", "SUCCESS", "FAILED", "REVERSED"),
+        default="PENDING"
+    )
     initiated_at = Column(TIMESTAMP, server_default=func.now())
     completed_at = Column(DateTime, nullable=True)
