@@ -18,7 +18,7 @@
         </svg>
       </div>
 
-      <div class="text-h5">Velos — Sign in</div>
+      <div class="text-h5">Mini Bank — Sign in</div>
       <p class="text-subtitle2">Demo accounts: admin@..., staff@..., customer@...</p>
 
       <q-form @submit.prevent="submit">
