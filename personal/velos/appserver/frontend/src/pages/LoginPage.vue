@@ -19,7 +19,6 @@
       </div>
 
       <div class="text-h5">Mini Bank — Sign in</div>
-      <p class="text-subtitle2">Demo accounts: admin@..., staff@..., customer@...</p>
 
       <q-form @submit.prevent="submit">
         <q-input v-model="email" label="Email" type="email" :rules="[val => !!val || 'Email required']" />
