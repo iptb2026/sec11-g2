@@ -18,6 +18,19 @@ class UserCreate(BaseModel):
     account_status: Literal["ACTIVE", "LOCKED", "DISABLED"] = "ACTIVE"
 
 
+class UserUpdate(BaseModel):
+    username: str
+    password: Optional[str] = None
+    email: Optional[EmailStr] = None
+    mobile_number: Optional[str] = None
+    first_name: str
+    middle_name: Optional[str] = None
+    last_name: str
+    date_of_birth: Optional[date] = None
+    role_id: int
+    account_status: Literal["ACTIVE", "LOCKED", "DISABLED"] = "ACTIVE"
+
+
 class UserOut(BaseModel):
     id: int
     username: str

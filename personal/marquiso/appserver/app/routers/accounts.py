@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.db_utils import commit_or_409
+from app.core.security import get_current_user_record
 from app.database.session import get_db
 from app.models.account import Account
 from app.models.account_type import AccountType
@@ -15,7 +16,9 @@ router = APIRouter(prefix="/accounts", tags=["Layer 3 - Accounts"])
 
 
 @router.post("/", response_model=AccountOut, status_code=status.HTTP_201_CREATED)
-def create_account(account: AccountCreate, db: Session = Depends(get_db)):
+def create_account(account: AccountCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user_record)):
+    if current_user.role_id == 3 and account.customer_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Customers can only open their own accounts")
     customer = db.query(User).filter(User.id == account.customer_id).first()
     if not customer:
         raise HTTPException(status_code=400, detail="customer_id does not exist")
@@ -45,15 +48,20 @@ def create_account(account: AccountCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/", response_model=list[AccountOut])
-def list_accounts(db: Session = Depends(get_db)):
-    return db.query(Account).all()
+def list_accounts(db: Session = Depends(get_db), current_user: User = Depends(get_current_user_record)):
+    query = db.query(Account)
+    if current_user.role_id == 3:
+        query = query.filter(Account.customer_id == current_user.id)
+    return query.all()
 
 
 @router.get("/{account_id}", response_model=AccountOut)
-def get_account(account_id: int, db: Session = Depends(get_db)):
+def get_account(account_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user_record)):
     account = db.query(Account).filter(Account.id == account_id).first()
     if not account:
         raise HTTPException(status_code=404, detail="Account not found")
+    if current_user.role_id == 3 and account.customer_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Customers can only view their own accounts")
     return account
 
 

@@ -3,17 +3,25 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.db_utils import commit_or_409
-from app.core.security import hash_password
+from app.core.security import get_current_user, hash_password
 from app.database.session import get_db
 from app.models.role import Role
 from app.models.user import User
-from app.schemas.user import UserCreate, UserOut
+from app.schemas.user import UserCreate, UserOut, UserUpdate
 
 router = APIRouter(prefix="/users", tags=["Layer 2 - Users"])
 
 
+def require_admin(username: str = Depends(get_current_user), db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.username == username).first()
+    role = db.query(Role).filter(Role.id == user.role_id).first() if user else None
+    if not role or role.role_code != "ADMIN":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
+    return user
+
+
 @router.post("/", response_model=UserOut, status_code=status.HTTP_201_CREATED)
-def create_user(user: UserCreate, db: Session = Depends(get_db)):
+def create_user(user: UserCreate, db: Session = Depends(get_db), _admin: User = Depends(require_admin)):
     # role_id is a foreign key — the referenced role must already exist.
     role = db.query(Role).filter(Role.id == user.role_id).first()
     if not role:
@@ -26,7 +34,12 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="username or email already in use")
 
     data = user.model_dump(exclude={"password"})
-    new_user = User(**data, hashed_password=hash_password(user.password))
+    try:
+        hashed_password = hash_password(user.password)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error))
+
+    new_user = User(**data, hashed_password=hashed_password)
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
@@ -47,7 +60,7 @@ def get_user(user_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/{user_id}", response_model=UserOut)
-def update_user(user_id: int, user_data: UserCreate, db: Session = Depends(get_db)):
+def update_user(user_id: int, user_data: UserUpdate, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -56,10 +69,11 @@ def update_user(user_id: int, user_data: UserCreate, db: Session = Depends(get_d
     if not role:
         raise HTTPException(status_code=400, detail="role_id does not exist")
 
-    data = user_data.model_dump(exclude={"password"})
+    data = user_data.model_dump(exclude={"password"}, exclude_unset=True)
     for field, value in data.items():
         setattr(user, field, value)
-    user.hashed_password = hash_password(user_data.password)
+    if user_data.password:
+        user.hashed_password = hash_password(user_data.password)
 
     db.commit()
     db.refresh(user)
