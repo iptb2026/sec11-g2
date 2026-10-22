@@ -1,0 +1,38 @@
+{
+  "name": "banking-frontend",
+  "version": "0.0.1",
+  "description": "A Quasar Project",
+  "productName": "Quasar App",
+  "author": "drguiritan <drguiritan@urios.edu.ph>",
+  "private": true,
+  "scripts": {
+    "dev": "quasar dev",
+    "build": "quasar build",
+    "postinstall": "quasar prepare --silent"
+  },
+  "dependencies": {
+    "@quasar/extras": "^1.16.15",
+    "axios": "^1.7.9",
+    "pinia": "^2.3.1",
+    "quasar": "^2.17.5",
+    "vue": "^3.5.13",
+    "vue-router": "^4.5.0"
+  },
+  "devDependencies": {
+    "@quasar/app-vite": "^1.10.2",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49"
+  },
+  "keywords": [
+    "quasar",
+    "quasar-app",
+    "quasar-cli",
+    "quasar-app-vite",
+    "vite",
+    "vue",
+    "vuejs"
+  ],
+  "engines": {
+    "node": ">= 18.0.0"
+  }
+}
