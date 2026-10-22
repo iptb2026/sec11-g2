@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.db_utils import commit_or_409
-from app.core.security import hash_password
+from app.core.security import hash_password, require_roles
 from app.database.session import get_db
 from app.models.role import Role
 from app.models.user import User
@@ -12,7 +12,7 @@ from app.schemas.user import UserCreate, UserOut
 router = APIRouter(prefix="/users", tags=["Layer 2 - Users"])
 
 
-@router.post("/", response_model=UserOut, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=UserOut, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_roles("ADMIN"))])
 def create_user(user: UserCreate, db: Session = Depends(get_db)):
     # role_id is a foreign key — the referenced role must already exist.
     role = db.query(Role).filter(Role.id == user.role_id).first()
@@ -46,7 +46,7 @@ def get_user(user_id: int, db: Session = Depends(get_db)):
     return user
 
 
-@router.put("/{user_id}", response_model=UserOut)
+@router.put("/{user_id}", response_model=UserOut, dependencies=[Depends(require_roles("ADMIN"))])
 def update_user(user_id: int, user_data: UserCreate, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -66,7 +66,7 @@ def update_user(user_id: int, user_data: UserCreate, db: Session = Depends(get_d
     return user
 
 
-@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_roles("ADMIN"))])
 def delete_user(user_id: int, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
