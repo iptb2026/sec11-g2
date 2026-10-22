@@ -1,0 +1,1 @@
+import{J as e,Q as t,Y as n}from"./index-YhPn2UeI.js";var r=t(({router:t})=>{n.interceptors.request.use(t=>{let n=e().token;return n&&(t.headers.Authorization=`Bearer ${n}`),t}),n.interceptors.response.use(e=>e,n=>(n.response?.status===401&&(e().logout(),t.push(`/login`)),Promise.reject(n)))});export{r as default};

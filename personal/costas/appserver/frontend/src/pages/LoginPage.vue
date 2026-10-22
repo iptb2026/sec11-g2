@@ -1,0 +1,6 @@
+<template><div class="login-page flex flex-center"><q-card class="login-card"><q-card-section><div class="eyebrow">SEC11 · COSTAS</div><h1>Welcome back</h1><p class="muted">Sign in to your banking workspace.</p><q-form class="q-gutter-md" @submit="submit"><q-input v-model="username" label="Username" outlined autofocus :rules="[(v) => !!v || 'Username is required']" /><q-input v-model="password" label="Password" outlined type="password" :rules="[(v) => !!v || 'Password is required']" /><q-btn class="full-width" color="primary" label="Sign in" type="submit" :loading="loading" /></q-form></q-card-section></q-card></div></template>
+<script setup>
+import { ref } from 'vue'; import { useRouter } from 'vue-router'; import { useQuasar } from 'quasar'; import { useAuthStore } from 'src/stores/auth-store'
+const username = ref(''); const password = ref(''); const loading = ref(false); const router = useRouter(); const $q = useQuasar(); const auth = useAuthStore()
+async function submit () { loading.value = true; try { await auth.login(username.value, password.value); router.push('/') } catch (error) { $q.notify({ type: 'negative', message: error.response?.data?.detail || error.message || 'Unable to sign in' }) } finally { loading.value = false } }
+</script>
