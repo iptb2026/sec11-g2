@@ -1,3 +1,4 @@
+from app.core.password_policy import StrongPassword
 # ==== LAYER 2: Identity & Access ====
 from datetime import date, datetime
 from typing import Optional, Literal
@@ -7,7 +8,7 @@ from pydantic import BaseModel, EmailStr
 
 class UserCreate(BaseModel):
     username: str
-    password: str
+    password: StrongPassword
     email: Optional[EmailStr] = None
     mobile_number: Optional[str] = None
     first_name: str
