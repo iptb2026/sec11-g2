@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+  <head>
+    <title><%= productName %></title>
+
+    <meta charset="utf-8">
+    <meta name="description" content="<%= productDescription %>">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="msapplication-tap-highlight" content="no">
+    <meta name="viewport" content="width=device-width, initial-scale=1<% if (ctx.mode.cordova || ctx.mode.capacitor) { %>, viewport-fit=cover<% } %>">
+    <!--
+      connect-src is relaxed to allow http/https/ws/wss to any host: this app talks to a
+      separately-configured FastAPI backend (see .env -> QCLI_API_BASE_URL) whose address
+      varies per student/lab setup, so it can't be pinned to 'self' like a typical SPA.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' http: https: ws: wss:;<% if (ctx.dev) { %> worker-src 'self' blob:;<% } %>"
+    />
+
+    <link rel="icon" type="image/svg+xml" href="bembank.svg">
+    <meta name="theme-color" content="#080f1b">
+  </head>
+  <body>
+    <!-- quasar:entry-point -->
+  </body>
+</html>
