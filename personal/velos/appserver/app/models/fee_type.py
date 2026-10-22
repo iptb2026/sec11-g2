@@ -1,5 +1,5 @@
 # ==== LAYER 1: Foundation & Reference Data ====
-from sqlalchemy import Column, BigInteger, String, Text, DECIMAL, TIMESTAMP
+from sqlalchemy import Column, Integer, String, Text, DECIMAL, TIMESTAMP
 from sqlalchemy.sql import func
 
 from app.database.session import Base
@@ -8,7 +8,7 @@ from app.database.session import Base
 class FeeType(Base):
     __tablename__ = "fee_types"
 
-    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     fee_code = Column(String(50), unique=True, nullable=False)
     fee_name = Column(String(100), nullable=False)
     fee_description = Column(Text, nullable=True)

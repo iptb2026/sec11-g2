@@ -8,7 +8,8 @@ from passlib.context import CryptContext
 from app.core.config import settings
 
 # Tool for hashing passwords
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Use a pure-Python hashing scheme by default for easier local dev
+pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
 # Tells FastAPI where users log in to get a token
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
