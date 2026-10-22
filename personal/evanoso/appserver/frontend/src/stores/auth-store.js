@@ -17,6 +17,8 @@ const persisted = loadPersisted()
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     token: persisted?.token || null,
+    googleChallenge: null,
+    profilePhoto: null,
     userId: persisted?.userId || null,
     username: persisted?.username || null,
     firstName: persisted?.firstName || null,
@@ -56,16 +58,27 @@ export const useAuthStore = defineStore('auth', {
       const { data } = await api.post('/auth/login', form, {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       })
+      if (data.otp_required || data.pin_required) return data
+      await this.finishLogin(data)
+      return { otp_required: false }
+    },
+
+    async verifyOtp (challengeToken, code) {
+      const { data } = await api.post('/auth/otp/verify', { challenge_token: challengeToken, code })
+      return data
+    },
+
+    async verifyPin (challengeToken, pin, confirmPin) {
+      const { data } = await api.post('/auth/pin/verify', { challenge_token: challengeToken, pin, confirm_pin: confirmPin })
+      await this.finishLogin(data)
+    },
+
+    async finishLogin (data) {
+      if (!data.access_token) throw new Error('Sign-in could not be completed. Please try again.')
       this.token = data.access_token
 
-      // No /auth/me endpoint exists on the backend, so the logged-in user's
-      // own record (and therefore their role) is resolved client-side by
-      // matching the username against the full user list.
-      const { data: users } = await api.get('/users/')
-      const me = users.find((u) => u.username === username)
-      if (!me) {
-        throw new Error('Logged in, but could not find a matching user record')
-      }
+      let me
+      try { me = (await api.get('/auth/me')).data } catch (error) { this.token = null; throw error }
 
       this.userId = me.id
       this.username = me.username
@@ -73,15 +86,16 @@ export const useAuthStore = defineStore('auth', {
       this.lastName = me.last_name
       this.roleId = me.role_id
 
-      const { data: role } = await api.get(`/roles/${me.role_id}`)
-      this.roleCode = role.role_code
-      this.roleName = role.role_name
+      this.roleCode = me.role_code
+      this.roleName = me.role_name
 
       this.persist()
     },
 
-    logout () {
+    async logout (revoke = true) {
+      const token = this.token
       this.token = null
+      this.profilePhoto = null
       this.userId = null
       this.username = null
       this.firstName = null
@@ -90,6 +104,9 @@ export const useAuthStore = defineStore('auth', {
       this.roleCode = null
       this.roleName = null
       localStorage.removeItem(STORAGE_KEY)
+      if (revoke && token) {
+        try { await api.post('/auth/logout', null, { headers: { Authorization: `Bearer ${token}` } }) } catch { /* The local session is already cleared. */ }
+      }
     },
   },
 })

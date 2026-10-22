@@ -6,14 +6,7 @@
       <q-btn color="primary" icon="add" label="New" @click="openCreate" />
     </div>
 
-    <q-table :rows="rows" :columns="columns" row-key="id" :loading="loading" flat bordered>
-      <template #body-cell-actions="props">
-        <q-td :props="props">
-          <q-btn dense flat round icon="edit" color="primary" @click="openEdit(props.row)" />
-          <q-btn dense flat round icon="delete" color="negative" @click="removeRow(props.row)" />
-        </q-td>
-      </template>
-    </q-table>
+    <q-table :rows="rows" :columns="columns" row-key="id" :loading="loading" flat bordered />
 
     <q-dialog v-model="showDialog">
       <q-card style="width: 440px">
@@ -22,6 +15,9 @@
         </q-card-section>
 
         <q-card-section class="q-gutter-md">
+          <q-banner v-if="accountOptions.length < 2" dense class="bg-orange-1 text-dark">
+            At least two accounts are needed. Create accounts under Staff &gt; Accounts first.
+          </q-banner>
           <q-select
             v-model="form.source_account_id"
             label="Source Account"
@@ -29,6 +25,7 @@
             emit-value
             map-options
             :options="accountOptions"
+            :disable="accountOptions.length < 2"
           >
             <template v-slot:option="scope">
               <q-item v-bind="scope.itemProps">
@@ -46,6 +43,7 @@
             emit-value
             map-options
             :options="accountOptions"
+            :disable="accountOptions.length < 2"
           >
             <template v-slot:option="scope">
               <q-item v-bind="scope.itemProps">
@@ -64,7 +62,7 @@
 
         <q-card-actions align="right">
           <q-btn flat label="Cancel" v-close-popup />
-          <q-btn color="primary" label="Save" @click="save" />
+          <q-btn color="primary" label="Save" :disable="accountOptions.length < 2" @click="save" />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -85,7 +83,6 @@ const columns = [
   { name: 'transfer_reference', label: 'Reference', field: 'transfer_reference', align: 'left' },
   { name: 'amount', label: 'Amount', field: 'amount', align: 'right' },
   { name: 'status', label: 'Status', field: 'status', align: 'left' },
-  { name: 'actions', label: 'Actions', field: 'actions', align: 'right' },
 ]
 
 const rows = ref([])

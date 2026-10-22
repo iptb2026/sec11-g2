@@ -6,6 +6,7 @@
       <q-btn color="primary" icon="add" label="New" @click="openCreate" />
     </div>
 
+    <q-banner v-if="errorMessage" class="bank-feedback q-mb-md">{{ errorMessage }}<template #action><q-btn flat label="Retry" @click="loadPage" /></template></q-banner>
     <q-table
       :rows="groupedRows"
       :columns="columns"
@@ -18,7 +19,7 @@
     >
       <template v-slot:body="props">
         <q-tr v-if="props.row.isGroupHeader" :key="props.row.key">
-          <q-td colspan="100%" class="bg-grey-2 text-weight-bold">
+          <q-td colspan="100%" class="account-group-row text-weight-bold">
             <q-icon name="person" class="q-mr-sm" />{{ props.row.groupLabel }}
           </q-td>
         </q-tr>
@@ -41,6 +42,9 @@
         </q-card-section>
 
         <q-card-section class="q-gutter-md">
+          <q-banner v-if="accountTypeOptions.length === 0" dense class="bg-orange-1 text-dark">
+            Create an account type in Admin &gt; Account Types before opening an account.
+          </q-banner>
           <q-input v-model="form.account_number" label="Account Number" filled />
           <q-select
             v-model="form.customer_id"
@@ -57,6 +61,7 @@
             emit-value
             map-options
             :options="accountTypeOptions"
+            :disable="accountTypeOptions.length === 0"
           />
           <q-input v-model="form.currency_code" label="Currency Code" filled />
           <q-input v-model="form.branch_code" label="Branch Code" filled />
@@ -64,7 +69,7 @@
 
         <q-card-actions align="right">
           <q-btn flat label="Cancel" v-close-popup />
-          <q-btn color="primary" label="Save" @click="save" />
+          <q-btn color="primary" label="Save" :disable="accountTypeOptions.length === 0" @click="save" />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -83,8 +88,8 @@ const columns = [
   { name: 'account_number', label: 'Account #', field: 'account_number', align: 'left' },
   { name: 'customer_id', label: 'Customer ID', field: 'customer_id', align: 'left' },
   { name: 'account_type_id', label: 'Type ID', field: 'account_type_id', align: 'left' },
-  { name: 'available_balance', label: 'Available Balance', field: 'available_balance', align: 'right' },
-  { name: 'ledger_balance', label: 'Ledger Balance', field: 'ledger_balance', align: 'right' },
+  { name: 'available_balance', label: 'Available Balance', field: 'available_balance', format: money, align: 'right' },
+  { name: 'ledger_balance', label: 'Ledger Balance', field: 'ledger_balance', format: money, align: 'right' },
   { name: 'status', label: 'Status', field: 'status', align: 'left' },
   { name: 'actions', label: 'Actions', field: 'actions', align: 'right' },
 ]
@@ -94,6 +99,11 @@ const customerOptions = ref([])
 const accountTypeOptions = ref([])
 const customerNameById = ref({})
 const loading = ref(false)
+const errorMessage = ref('')
+function money (value, row) {
+  const currency = /^[A-Z]{3}$/.test(row.currency_code || '') ? row.currency_code : 'PHP'
+  return Number.isFinite(Number(value)) ? new Intl.NumberFormat('en-PH', { style: 'currency', currency }).format(Number(value)) : '—'
+}
 
 function rowKey (row) {
   return row.isGroupHeader ? row.key : row.id
@@ -103,7 +113,7 @@ const groupedRows = computed(() => {
   const sorted = [...rows.value].sort((a, b) => {
     const nameA = customerNameById.value[a.customer_id] || ''
     const nameB = customerNameById.value[b.customer_id] || ''
-    return nameA.localeCompare(nameB) || a.account_number.localeCompare(b.account_number)
+    return nameA.localeCompare(nameB) || String(a.account_number ?? '').localeCompare(String(b.account_number ?? ''))
   })
 
   const result = []
@@ -134,18 +144,25 @@ const form = ref(emptyForm())
 
 async function loadRows () {
   loading.value = true
-  const { data } = await api.get('/accounts/')
-  rows.value = data
-  loading.value = false
+  try {
+    const { data } = await api.get('/accounts/')
+    rows.value = data
+  } catch {
+    errorMessage.value = 'Accounts could not be loaded. Please try again.'
+  } finally { loading.value = false }
 }
 
 async function loadOptions () {
+  try {
   const { data: users } = await api.get('/users/')
   customerOptions.value = users.map((u) => ({ label: `${u.username} (${u.first_name} ${u.last_name})`, value: u.id }))
   customerNameById.value = Object.fromEntries(users.map((u) => [u.id, `${u.first_name} ${u.last_name}`]))
 
   const { data: types } = await api.get('/account-types/')
   accountTypeOptions.value = types.map((t) => ({ label: `${t.type_code} - ${t.type_name}`, value: t.id }))
+  } catch {
+    errorMessage.value = 'Customer and account details could not be loaded. Please try again.'
+  }
 }
 
 function openCreate () {
@@ -177,7 +194,7 @@ async function save () {
     $q.notify({ type: 'positive', message: 'Account saved' })
     loadRows()
   } catch (err) {
-    $q.notify({ type: 'negative', message: err.response?.data?.detail || 'Save failed' })
+    $q.notify({ type: 'negative', message: 'The account could not be saved. Check the details and try again.' })
   }
 }
 
@@ -193,13 +210,11 @@ function removeRow (row) {
       $q.notify({ type: 'positive', message: 'Account deleted' })
       loadRows()
     } catch (err) {
-      $q.notify({ type: 'negative', message: err.response?.data?.detail || 'Delete failed' })
+      $q.notify({ type: 'negative', message: 'This account could not be deleted. Accounts with linked activity must be retained.' })
     }
   })
 }
 
-onMounted(() => {
-  loadRows()
-  loadOptions()
-})
+async function loadPage () { errorMessage.value = ''; await Promise.all([loadRows(), loadOptions()]) }
+onMounted(loadPage)
 </script>

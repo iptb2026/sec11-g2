@@ -3,14 +3,14 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional, Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class TransferCreate(BaseModel):
     source_account_id: int
     destination_account_id: int
     transfer_reference: str
-    amount: Decimal
+    amount: Decimal = Field(gt=0)
     transfer_type: Literal["INTERNAL", "SCHEDULED"] = "INTERNAL"
     remarks: Optional[str] = None
 

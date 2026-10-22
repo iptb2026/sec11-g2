@@ -2,8 +2,14 @@
 // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file
 
 import { defineConfig } from '#q-app'
+import { loadEnv } from 'vite'
 
-export default defineConfig((/* ctx */) => {
+export default defineConfig(({ mode }) => {
+  const apiBaseUrl = new URL(
+    loadEnv(mode, process.cwd(), 'QCLI_').QCLI_API_BASE_URL || 'http://127.0.0.1:5001/'
+  )
+  const apiBasePath = apiBaseUrl.pathname.replace(/\/?$/, '/')
+
   return {
     // https://v2.quasar.dev/quasar-cli-vite/prefetch-feature
     // preFetch: true,
@@ -44,16 +50,26 @@ export default defineConfig((/* ctx */) => {
       // https://v2.quasar.dev/quasar-cli-vite/page-routing-with-vue-router#filename-based-routing
       // filenameBasedRouting: true,
 
-       vueRouterMode: 'hash', // available values: 'hash', 'history'
-       vueRouterBase: '/guiritan-wui/',
-       publicPath: '/guiritan-wui/',
+      vueRouterMode: 'hash',
+	vueRouterBase: '/bembank/',
+	publicPath: '/bembank/', // available values: 'hash', 'history'
       // define: {},
       // defineEnv: {}
       // ignorePublicFolder: true,
       // minify: false,
       // distDir
 
-      // extendViteConf (viteConf) {},
+      extendViteConf (viteConf) {
+        viteConf.server ||= {}
+        viteConf.server.proxy = {
+          ...viteConf.server.proxy,
+          '/bembank/api': {
+            target: apiBaseUrl.origin,
+            changeOrigin: true,
+            rewrite: (path) => `${apiBasePath}${path.replace(/^\/bembank\/api\/?/, '')}`
+          }
+        }
+      },
       // viteVuePluginOptions: {},
 
       // vitePlugins: [
@@ -65,7 +81,9 @@ export default defineConfig((/* ctx */) => {
     devServer: {
       // vueDevtools: true,
       // https: true,
-      open: true // opens browser window automatically
+	host: '0.0.0.0',
+      port: 9000,
+      open: false // opens browser window automatically
     },
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#framework
@@ -83,7 +101,7 @@ export default defineConfig((/* ctx */) => {
       // directives: [],
 
       // Quasar plugins
-      plugins: []
+      plugins: ['Dialog', 'Notify']
     },
 
     // animations: 'all', // --- includes all animations

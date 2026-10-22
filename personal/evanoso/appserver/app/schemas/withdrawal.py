@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 class WithdrawalCreate(BaseModel):
     account_id: int
     reference_number: str
-    amount: Decimal
+    amount: Decimal = Field(gt=0)
     withdrawal_channel: Literal["ATM", "ONLINE", "BRANCH", "INTERBANK"]
     approved_by_user_id: Optional[int] = None
     remarks: Optional[str] = None

@@ -1,9 +1,11 @@
 # ==== LAYER 4: Transactions ====
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
+from app.core.audit import record_audit_event
+from app.core.db_utils import commit_or_409
 from app.database.session import get_db
 from app.models.account import Account
 from app.models.transfer import Transfer
@@ -13,7 +15,7 @@ router = APIRouter(prefix="/transfers", tags=["Layer 4 - Transfers"])
 
 
 @router.post("/", response_model=TransferOut, status_code=status.HTTP_201_CREATED)
-def create_transfer(transfer: TransferCreate, db: Session = Depends(get_db)):
+def create_transfer(transfer: TransferCreate, request: Request, db: Session = Depends(get_db)):
     if transfer.source_account_id == transfer.destination_account_id:
         raise HTTPException(status_code=400, detail="source and destination accounts must be different")
 
@@ -59,7 +61,22 @@ def create_transfer(transfer: TransferCreate, db: Session = Depends(get_db)):
     destination.available_balance += transfer.amount
     destination.ledger_balance += transfer.amount
 
-    db.commit()
+    db.flush()
+    record_audit_event(
+        db,
+        request,
+        "CREATE",
+        "transfers",
+        new_transfer.id,
+        new_value={
+            "source_account_id": transfer.source_account_id,
+            "destination_account_id": transfer.destination_account_id,
+            "transfer_reference": transfer.transfer_reference,
+            "amount": str(transfer.amount),
+            "status": new_transfer.status,
+        },
+    )
+    commit_or_409(db, "Transfer conflicts with an existing record")
     db.refresh(new_transfer)
     return new_transfer
 
@@ -79,25 +96,19 @@ def get_transfer(transfer_id: int, db: Session = Depends(get_db)):
 
 @router.put("/{transfer_id}", response_model=TransferOut)
 def update_transfer(transfer_id: int, data: TransferCreate, db: Session = Depends(get_db)):
-    """NOTE: does not move any money back — see the Layer 4 guide."""
-    transfer = db.query(Transfer).filter(Transfer.id == transfer_id).first()
-    if not transfer:
+    if not db.query(Transfer.id).filter(Transfer.id == transfer_id).first():
         raise HTTPException(status_code=404, detail="Transfer not found")
-
-    for field, value in data.model_dump().items():
-        setattr(transfer, field, value)
-
-    db.commit()
-    db.refresh(transfer)
-    return transfer
+    raise HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail="Posted transfers cannot be edited; create a correcting transfer",
+    )
 
 
 @router.delete("/{transfer_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_transfer(transfer_id: int, db: Session = Depends(get_db)):
-    """NOTE: does not move any money back — see the Layer 4 guide."""
-    transfer = db.query(Transfer).filter(Transfer.id == transfer_id).first()
-    if not transfer:
+    if not db.query(Transfer.id).filter(Transfer.id == transfer_id).first():
         raise HTTPException(status_code=404, detail="Transfer not found")
-
-    db.delete(transfer)
-    db.commit()
+    raise HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail="Posted transfers cannot be deleted; create a correcting transfer",
+    )

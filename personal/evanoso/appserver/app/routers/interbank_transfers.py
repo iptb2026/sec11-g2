@@ -1,9 +1,11 @@
 # ==== LAYER 4: Transactions ====
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
+from app.core.audit import record_audit_event
+from app.core.db_utils import commit_or_409
 from app.database.session import get_db
 from app.models.account import Account
 from app.models.bank import Bank
@@ -18,7 +20,9 @@ router = APIRouter(prefix="/interbank-transfers", tags=["Layer 4 - Interbank Tra
 
 
 @router.post("/", response_model=InterbankTransferOut, status_code=status.HTTP_201_CREATED)
-def create_interbank_transfer(transfer: InterbankTransferCreate, db: Session = Depends(get_db)):
+def create_interbank_transfer(
+    transfer: InterbankTransferCreate, request: Request, db: Session = Depends(get_db)
+):
     # Lock the source account row for the duration of this transaction — see
     # the same note in deposits.py / withdrawals.py.
     source = db.query(Account).filter(Account.id == transfer.source_account_id).with_for_update().first()
@@ -52,7 +56,23 @@ def create_interbank_transfer(transfer: InterbankTransferCreate, db: Session = D
     source.available_balance -= total_debit
     source.ledger_balance -= total_debit
 
-    db.commit()
+    db.flush()
+    record_audit_event(
+        db,
+        request,
+        "CREATE",
+        "interbank_transfers",
+        new_transfer.id,
+        new_value={
+            "source_account_id": transfer.source_account_id,
+            "target_bank_id": transfer.target_bank_id,
+            "reference_number": transfer.reference_number,
+            "amount": str(transfer.amount),
+            "transfer_fee": str(transfer.transfer_fee),
+            "status": new_transfer.status,
+        },
+    )
+    commit_or_409(db, "Interbank transfer conflicts with an existing record")
     db.refresh(new_transfer)
     return new_transfer
 
@@ -64,7 +84,7 @@ def list_interbank_transfers(db: Session = Depends(get_db)):
 
 @router.get("/{transfer_id}", response_model=InterbankTransferOut)
 def get_interbank_transfer(transfer_id: int, db: Session = Depends(get_db)):
-    transfer = db.query(InterbankTransfer).filter(InterbankTransfer.id == transfer_id).first()
+    transfer = db.query(InterbankTransfer).filter(InterbankTransfer.id == transfer_id).with_for_update().first()
     if not transfer:
         raise HTTPException(status_code=404, detail="Interbank transfer not found")
     return transfer
@@ -72,28 +92,58 @@ def get_interbank_transfer(transfer_id: int, db: Session = Depends(get_db)):
 
 @router.put("/{transfer_id}/status", response_model=InterbankTransferOut)
 def update_interbank_transfer_status(
-    transfer_id: int, data: InterbankTransferStatusUpdate, db: Session = Depends(get_db)
+    transfer_id: int,
+    data: InterbankTransferStatusUpdate,
+    request: Request,
+    db: Session = Depends(get_db),
 ):
-    """Moves a PROCESSING transfer to its final settlement status (SUCCESS/FAILED/REVERSED)."""
-    transfer = db.query(InterbankTransfer).filter(InterbankTransfer.id == transfer_id).first()
+    """Settle a transfer or reverse a previously successful transfer."""
+    transfer = db.query(InterbankTransfer).filter(InterbankTransfer.id == transfer_id).with_for_update().first()
     if not transfer:
         raise HTTPException(status_code=404, detail="Interbank transfer not found")
+
+    old_status = transfer.status
+    allowed_transitions = {
+        "PROCESSING": {"SUCCESS", "FAILED"},
+        "SUCCESS": {"REVERSED"},
+    }
+    if data.status not in allowed_transitions.get(old_status, set()):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Cannot change interbank transfer from {old_status} to {data.status}",
+        )
+
+    if data.status in ("FAILED", "REVERSED"):
+        source = db.query(Account).filter(Account.id == transfer.source_account_id).with_for_update().first()
+        if not source:
+            raise HTTPException(status_code=409, detail="Source account no longer exists")
+        refund = transfer.amount + transfer.transfer_fee
+        source.available_balance += refund
+        source.ledger_balance += refund
 
     transfer.status = data.status
     if data.status in ("SUCCESS", "FAILED", "REVERSED"):
         transfer.completed_at = datetime.utcnow()
 
-    db.commit()
+    record_audit_event(
+        db,
+        request,
+        "UPDATE",
+        "interbank_transfers",
+        transfer.id,
+        old_value={"status": old_status},
+        new_value={"status": transfer.status},
+    )
+    commit_or_409(db, "Interbank transfer status conflicts with an existing record")
     db.refresh(transfer)
     return transfer
 
 
 @router.delete("/{transfer_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_interbank_transfer(transfer_id: int, db: Session = Depends(get_db)):
-    """NOTE: does not move any money back — see the Layer 4 guide."""
-    transfer = db.query(InterbankTransfer).filter(InterbankTransfer.id == transfer_id).first()
-    if not transfer:
+    if not db.query(InterbankTransfer.id).filter(InterbankTransfer.id == transfer_id).with_for_update().first():
         raise HTTPException(status_code=404, detail="Interbank transfer not found")
-
-    db.delete(transfer)
-    db.commit()
+    raise HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail="Interbank transfers cannot be deleted; use a valid settlement or reversal status",
+    )

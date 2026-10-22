@@ -21,8 +21,12 @@
             title="Mark FAILED"
             @click="markStatus(props.row, 'FAILED')"
           />
-          <q-btn dense flat round icon="edit" color="primary" @click="openEdit(props.row)" />
-          <q-btn dense flat round icon="delete" color="negative" @click="removeRow(props.row)" />
+          <q-btn
+            v-if="props.row.status === 'SUCCESS'"
+            dense flat round icon="undo" color="warning"
+            title="Reverse transfer"
+            @click="markStatus(props.row, 'REVERSED')"
+          />
         </q-td>
       </template>
     </q-table>
@@ -34,6 +38,10 @@
         </q-card-section>
 
         <q-card-section class="q-gutter-md">
+          <q-banner v-if="accountOptions.length === 0 || bankOptions.length === 0" dense class="bg-orange-1 text-dark">
+            <template v-if="accountOptions.length === 0">Create an account under Staff &gt; Accounts. </template>
+            <template v-if="bankOptions.length === 0">Add a target bank under Admin &gt; Banks.</template>
+          </q-banner>
           <q-select
             v-model="form.source_account_id"
             label="Source Account"
@@ -41,6 +49,7 @@
             emit-value
             map-options
             :options="accountOptions"
+            :disable="accountOptions.length === 0"
           />
           <q-select
             v-model="form.target_bank_id"
@@ -49,6 +58,7 @@
             emit-value
             map-options
             :options="bankOptions"
+            :disable="bankOptions.length === 0"
           />
           <q-input v-model="form.target_account_number" label="Target Account Number" filled />
           <q-input v-model="form.beneficiary_name" label="Beneficiary Name" filled />
@@ -59,7 +69,7 @@
 
         <q-card-actions align="right">
           <q-btn flat label="Cancel" v-close-popup />
-          <q-btn color="primary" label="Save" @click="save" />
+          <q-btn color="primary" label="Save" :disable="accountOptions.length === 0 || bankOptions.length === 0" @click="save" />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -81,7 +91,7 @@ const columns = [
   { name: 'amount', label: 'Amount', field: 'amount', align: 'right' },
   { name: 'transfer_fee', label: 'Fee', field: 'transfer_fee', align: 'right' },
   { name: 'status', label: 'Status', field: 'status', align: 'left' },
-  { name: 'actions', label: 'Actions', field: 'actions', align: 'right' },
+  { name: 'actions', label: 'Settlement', field: 'actions', align: 'right' },
 ]
 
 const rows = ref([])

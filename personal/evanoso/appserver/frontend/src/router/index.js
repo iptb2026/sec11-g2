@@ -36,7 +36,7 @@ export default defineRouter((/* { store, ssrContext } */) => {
   Router.beforeEach((to) => {
     const auth = useAuthStore()
 
-    if (to.path === '/login') {
+    if (['/login', '/signup'].includes(to.path)) {
       // Already logged in? Skip the login page.
       return auth.isAuthenticated ? '/' : true
     }

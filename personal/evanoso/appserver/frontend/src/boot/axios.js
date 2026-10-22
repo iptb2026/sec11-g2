@@ -16,7 +16,7 @@ export default defineBoot(({ app, router }) => {
     (error) => {
       if (error.response && error.response.status === 401) {
         const auth = useAuthStore()
-        auth.logout()
+        auth.logout(false)
         router.push('/login')
       }
       return Promise.reject(error)

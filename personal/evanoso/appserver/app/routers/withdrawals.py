@@ -1,7 +1,9 @@
 # ==== LAYER 4: Transactions ====
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
+from app.core.audit import record_audit_event
+from app.core.db_utils import commit_or_409
 from app.database.session import get_db
 from app.models.account import Account
 from app.models.user import User
@@ -13,7 +15,7 @@ router = APIRouter(prefix="/withdrawals", tags=["Layer 4 - Withdrawals"])
 
 
 @router.post("/", response_model=WithdrawalOut, status_code=status.HTTP_201_CREATED)
-def create_withdrawal(withdrawal: WithdrawalCreate, db: Session = Depends(get_db)):
+def create_withdrawal(withdrawal: WithdrawalCreate, request: Request, db: Session = Depends(get_db)):
     # Lock the account row for the duration of this transaction — without
     # this, two withdrawals submitted at nearly the same moment could both
     # read the same starting balance and one of their deductions would be
@@ -51,7 +53,21 @@ def create_withdrawal(withdrawal: WithdrawalCreate, db: Session = Depends(get_db
     if limit:
         limit.daily_used_amount += withdrawal.amount
 
-    db.commit()
+    db.flush()
+    record_audit_event(
+        db,
+        request,
+        "CREATE",
+        "withdrawals",
+        new_withdrawal.id,
+        new_value={
+            "account_id": withdrawal.account_id,
+            "reference_number": withdrawal.reference_number,
+            "amount": str(withdrawal.amount),
+            "withdrawal_channel": withdrawal.withdrawal_channel,
+        },
+    )
+    commit_or_409(db, "Withdrawal conflicts with an existing record")
     db.refresh(new_withdrawal)
     return new_withdrawal
 
@@ -71,25 +87,19 @@ def get_withdrawal(withdrawal_id: int, db: Session = Depends(get_db)):
 
 @router.put("/{withdrawal_id}", response_model=WithdrawalOut)
 def update_withdrawal(withdrawal_id: int, data: WithdrawalCreate, db: Session = Depends(get_db)):
-    """NOTE: does not re-adjust the account balance or the daily limit usage — see the Layer 4 guide."""
-    withdrawal = db.query(Withdrawal).filter(Withdrawal.id == withdrawal_id).first()
-    if not withdrawal:
+    if not db.query(Withdrawal.id).filter(Withdrawal.id == withdrawal_id).first():
         raise HTTPException(status_code=404, detail="Withdrawal not found")
-
-    for field, value in data.model_dump().items():
-        setattr(withdrawal, field, value)
-
-    db.commit()
-    db.refresh(withdrawal)
-    return withdrawal
+    raise HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail="Posted withdrawals cannot be edited; create a correcting transaction",
+    )
 
 
 @router.delete("/{withdrawal_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_withdrawal(withdrawal_id: int, db: Session = Depends(get_db)):
-    """NOTE: does not reverse the account balance or the daily limit usage — see the Layer 4 guide."""
-    withdrawal = db.query(Withdrawal).filter(Withdrawal.id == withdrawal_id).first()
-    if not withdrawal:
+    if not db.query(Withdrawal.id).filter(Withdrawal.id == withdrawal_id).first():
         raise HTTPException(status_code=404, detail="Withdrawal not found")
-
-    db.delete(withdrawal)
-    db.commit()
+    raise HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail="Posted withdrawals cannot be deleted; create a correcting deposit",
+    )

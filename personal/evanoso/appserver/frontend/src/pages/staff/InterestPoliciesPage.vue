@@ -33,8 +33,8 @@
           <q-input v-model="form.policy_name" label="Policy Name" filled />
           <q-input v-model.number="form.annual_rate" label="Annual Rate %" type="number" filled />
           <q-input v-model="form.compounding_frequency" label="Compounding Frequency" filled hint="e.g. MONTHLY" />
-          <q-input v-model="form.effective_date" label="Effective Date" filled hint="YYYY-MM-DD" />
-          <q-input v-model="form.expiration_date" label="Expiration Date" filled hint="YYYY-MM-DD (optional)" />
+          <DatePickerField v-model="form.effective_date" label="Effective Date" filled />
+          <DatePickerField v-model="form.expiration_date" label="Expiration Date" filled clearable />
         </q-card-section>
 
         <q-card-actions align="right">
@@ -47,6 +47,7 @@
 </template>
 
 <script setup>
+import DatePickerField from '@/components/DatePickerField.vue'
 import { ref, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import api from '@/services/api'

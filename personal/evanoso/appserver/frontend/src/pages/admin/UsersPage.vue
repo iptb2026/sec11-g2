@@ -23,13 +23,13 @@
 
         <q-card-section class="q-gutter-md">
           <q-input v-model="form.username" label="Username" filled />
-          <q-input v-model="form.password" label="Password" filled hint="Plain text here, hashed by the backend" />
+          <NewPasswordField v-model="form.password" label="Password" />
           <q-input v-model="form.email" label="Email" filled />
           <q-input v-model="form.mobile_number" label="Mobile Number" filled />
           <q-input v-model="form.first_name" label="First Name" filled />
           <q-input v-model="form.middle_name" label="Middle Name" filled />
           <q-input v-model="form.last_name" label="Last Name" filled />
-          <q-input v-model="form.date_of_birth" label="Date of Birth" filled hint="YYYY-MM-DD" />
+          <DatePickerField v-model="form.date_of_birth" label="Date of Birth" filled clearable />
           <q-select
             v-model="form.role_id"
             label="Role"
@@ -51,6 +51,9 @@
 </template>
 
 <script setup>
+import { passwordRule } from '@/utils/password-policy'
+import NewPasswordField from '@/components/NewPasswordField.vue'
+import DatePickerField from '@/components/DatePickerField.vue'
 import { ref, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import api from '@/services/api'
@@ -123,6 +126,8 @@ function openEdit (row) {
 }
 
 async function save () {
+  const validation = passwordRule(form.value.password)
+  if (validation !== true) { $q.notify({ type: 'negative', message: validation }); return }
   try {
     if (editingId.value) {
       await api.put(`/users/${editingId.value}`, form.value)

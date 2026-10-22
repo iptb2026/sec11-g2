@@ -1,7 +1,9 @@
 # ==== LAYER 4: Transactions ====
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
+from app.core.audit import record_audit_event
+from app.core.db_utils import commit_or_409
 from app.database.session import get_db
 from app.models.account import Account
 from app.models.deposit import Deposit
@@ -12,7 +14,7 @@ router = APIRouter(prefix="/deposits", tags=["Layer 4 - Deposits"])
 
 
 @router.post("/", response_model=DepositOut, status_code=status.HTTP_201_CREATED)
-def create_deposit(deposit: DepositCreate, db: Session = Depends(get_db)):
+def create_deposit(deposit: DepositCreate, request: Request, db: Session = Depends(get_db)):
     # .with_for_update() locks this account row until the commit below, so a
     # second request touching the same account has to wait its turn instead
     # of reading a stale balance and silently overwriting this change.
@@ -36,7 +38,21 @@ def create_deposit(deposit: DepositCreate, db: Session = Depends(get_db)):
     account.available_balance += deposit.amount
     account.ledger_balance += deposit.amount
 
-    db.commit()
+    db.flush()
+    record_audit_event(
+        db,
+        request,
+        "CREATE",
+        "deposits",
+        new_deposit.id,
+        new_value={
+            "account_id": deposit.account_id,
+            "reference_number": deposit.reference_number,
+            "amount": str(deposit.amount),
+            "deposit_channel": deposit.deposit_channel,
+        },
+    )
+    commit_or_409(db, "Deposit conflicts with an existing record")
     db.refresh(new_deposit)
     return new_deposit
 
@@ -56,30 +72,19 @@ def get_deposit(deposit_id: int, db: Session = Depends(get_db)):
 
 @router.put("/{deposit_id}", response_model=DepositOut)
 def update_deposit(deposit_id: int, data: DepositCreate, db: Session = Depends(get_db)):
-    """
-    NOTE: this only edits the deposit record itself (e.g. fixing a typo in
-    `remarks`). It does NOT re-adjust the account balance for the amount
-    difference. Real banking systems never edit a posted transaction for
-    exactly this reason — see the Layer 4 guide for why.
-    """
-    deposit = db.query(Deposit).filter(Deposit.id == deposit_id).first()
-    if not deposit:
+    if not db.query(Deposit.id).filter(Deposit.id == deposit_id).first():
         raise HTTPException(status_code=404, detail="Deposit not found")
-
-    for field, value in data.model_dump().items():
-        setattr(deposit, field, value)
-
-    db.commit()
-    db.refresh(deposit)
-    return deposit
+    raise HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail="Posted deposits cannot be edited; create a correcting transaction",
+    )
 
 
 @router.delete("/{deposit_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_deposit(deposit_id: int, db: Session = Depends(get_db)):
-    """NOTE: does not reverse the account balance change either — see the Layer 4 guide."""
-    deposit = db.query(Deposit).filter(Deposit.id == deposit_id).first()
-    if not deposit:
+    if not db.query(Deposit.id).filter(Deposit.id == deposit_id).first():
         raise HTTPException(status_code=404, detail="Deposit not found")
-
-    db.delete(deposit)
-    db.commit()
+    raise HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail="Posted deposits cannot be deleted; create a correcting withdrawal",
+    )

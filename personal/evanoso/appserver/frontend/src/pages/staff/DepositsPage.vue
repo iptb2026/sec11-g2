@@ -6,14 +6,7 @@
       <q-btn color="primary" icon="add" label="New" @click="openCreate" />
     </div>
 
-    <q-table :rows="rows" :columns="columns" row-key="id" :loading="loading" flat bordered>
-      <template #body-cell-actions="props">
-        <q-td :props="props">
-          <q-btn dense flat round icon="edit" color="primary" @click="openEdit(props.row)" />
-          <q-btn dense flat round icon="delete" color="negative" @click="removeRow(props.row)" />
-        </q-td>
-      </template>
-    </q-table>
+    <q-table :rows="rows" :columns="columns" row-key="id" :loading="loading" flat bordered />
 
     <q-dialog v-model="showDialog">
       <q-card style="width: 420px">
@@ -22,6 +15,9 @@
         </q-card-section>
 
         <q-card-section class="q-gutter-md">
+          <q-banner v-if="accountOptions.length === 0" dense class="bg-orange-1 text-dark">
+            No accounts are available. Create an account under Staff &gt; Accounts first.
+          </q-banner>
           <q-select
             v-model="form.account_id"
             label="Account"
@@ -29,6 +25,7 @@
             emit-value
             map-options
             :options="accountOptions"
+            :disable="accountOptions.length === 0"
           >
             <template v-slot:option="scope">
               <q-item v-bind="scope.itemProps">
@@ -52,21 +49,15 @@
             v-model="form.deposit_channel"
             label="Channel"
             filled
-            use-input
-            hide-selected
-            fill-input
-            input-debounce="0"
-            new-value-mode="add-unique"
-            :options="filteredChannelOptions"
-            @filter="filterChannelOptions"
-            hint="e.g. ONLINE, ATM, TELLER"
+            :options="channelOptions"
+            :rules="[(val) => !!val || 'Channel is required']"
           />
           <q-input v-model="form.remarks" label="Remarks" type="textarea" filled />
         </q-card-section>
 
         <q-card-actions align="right">
           <q-btn flat label="Cancel" v-close-popup />
-          <q-btn color="primary" label="Save" @click="save" />
+          <q-btn color="primary" label="Save" :disable="accountOptions.length === 0" @click="save" />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -89,7 +80,6 @@ const columns = [
   { name: 'amount', label: 'Amount', field: 'amount', align: 'right' },
   { name: 'deposit_channel', label: 'Channel', field: 'deposit_channel', align: 'left' },
   { name: 'transaction_date', label: 'Date', field: 'transaction_date', align: 'left' },
-  { name: 'actions', label: 'Actions', field: 'actions', align: 'right' },
 ]
 
 const rows = ref([])
@@ -104,18 +94,7 @@ const form = ref(emptyForm())
 
 const accountHolderName = computed(() => accountHolderByAccountId.value[form.value.account_id] || '')
 
-const channelOptions = ['ONLINE', 'ATM', 'TELLER']
-const filteredChannelOptions = ref(channelOptions)
-function filterChannelOptions (val, update) {
-  update(() => {
-    if (val === '') {
-      filteredChannelOptions.value = channelOptions
-    } else {
-      const needle = val.toLowerCase()
-      filteredChannelOptions.value = channelOptions.filter((v) => v.toLowerCase().includes(needle))
-    }
-  })
-}
+const channelOptions = ['CASH', 'ATM', 'ONLINE', 'INTERBANK']
 
 async function loadRows () {
   loading.value = true

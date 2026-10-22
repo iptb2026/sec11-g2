@@ -1,4 +1,5 @@
 const routes = [
+  { path: '/signup', component: () => import('@/pages/SignupPage.vue') },
   {
     path: '/login',
     component: () => import('@/pages/LoginPage.vue'),
@@ -10,6 +11,17 @@ const routes = [
     meta: { requiresAuth: true },
     children: [
       { path: '', name: 'dashboard', component: () => import('@/pages/DashboardPage.vue') },
+      { path: 'staff/register', component: () => import('@/pages/RegistrationPage.vue'), meta: { roles: ['ADMIN', 'STAFF'] } },
+      { path: 'statements', component: () => import('@/pages/StatementsPage.vue') },
+      { path: 'customer/other-banks', component: () => import('@/pages/customer/OtherBankPage.vue'), meta: { roles: ['CUSTOMER'] } },
+      { path: 'help', component: () => import('@/pages/HelpPage.vue') },
+      { path: 'customer/more', component: () => import('@/pages/customer/MorePage.vue'), meta: { roles: ['CUSTOMER'] } },
+      { path: 'customer/mobile-load', component: () => import('@/pages/customer/MobileLoadPage.vue'), meta: { roles: ['CUSTOMER'] } },
+      { path: 'profile', component: () => import('@/pages/ProfilePage.vue') },
+      { path: 'requests', component: () => import('@/pages/RequestsPage.vue') },
+      { path: 'customer/savings', component: () => import('@/pages/customer/SavingsPage.vue'), meta: { roles: ['CUSTOMER'] } },
+      { path: 'customer/cards', component: () => import('@/pages/customer/CardsPage.vue'), meta: { roles: ['CUSTOMER'] } },
+      { path: 'customer/notifications', component: () => import('@/pages/customer/NotificationsPage.vue'), meta: { roles: ['CUSTOMER'] } },
 
       // --- ADMIN: system configuration ---
       { path: 'admin/roles', component: () => import('@/pages/admin/RolesPage.vue'), meta: { roles: ['ADMIN'] } },
@@ -34,6 +46,9 @@ const routes = [
       // --- CUSTOMER: self-service ---
       { path: 'my-account', component: () => import('@/pages/customer/MyAccountPage.vue'), meta: { roles: ['CUSTOMER'] } },
       { path: 'my-transactions', component: () => import('@/pages/customer/MyTransactionsPage.vue'), meta: { roles: ['CUSTOMER'] } },
+      { path: 'customer/transfers', component: () => import('@/pages/customer/CustomerTransfersPage.vue'), meta: { roles: ['CUSTOMER'] } },
+      { path: 'customer/bill-payments', component: () => import('@/pages/customer/BillPaymentsPage.vue'), meta: { roles: ['CUSTOMER'] } },
+      { path: 'customer/investments', component: () => import('@/pages/customer/InvestmentsPage.vue'), meta: { roles: ['CUSTOMER'] } },
     ],
   },
 

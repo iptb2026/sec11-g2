@@ -47,7 +47,7 @@
             readonly
           />
           <q-input v-model.number="form.daily_limit_amount" label="Daily Limit Amount" type="number" filled />
-          <q-input v-model="form.last_reset_date" label="Last Reset Date" filled hint="YYYY-MM-DD" />
+          <DatePickerField v-model="form.last_reset_date" label="Last Reset Date" filled />
         </q-card-section>
 
         <q-card-actions align="right">
@@ -60,6 +60,7 @@
 </template>
 
 <script setup>
+import DatePickerField from '@/components/DatePickerField.vue'
 import { ref, computed, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import api from '@/services/api'
