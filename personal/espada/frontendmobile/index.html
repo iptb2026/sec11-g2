@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>BEMBank</title>
+  </head>
+  <body>
+    <div id="startup-status">Starting BEMBank…</div>
+    <!-- quasar:entry-point -->
+    <script>
+      const showStartupError = (error) => {
+        const status = document.getElementById('startup-status')
+        if (status) {
+          status.textContent = 'App error: ' + (error?.message || error)
+          status.style.cssText = 'padding:24px;font:16px sans-serif;color:#b00020'
+        }
+      }
+      window.addEventListener('error', event => showStartupError(event.error || event.message))
+      window.addEventListener('unhandledrejection', event => showStartupError(event.reason))
+    </script>
+  </body>
+</html>

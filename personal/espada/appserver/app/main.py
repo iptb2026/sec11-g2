@@ -9,6 +9,7 @@ from app.routers import roles, account_types, banks, fee_types
 
 # ==== LAYER 2: Identity & Access ====
 from app.routers import users, auth, sessions, audit_logs
+from app.routers import customer
 
 
 # Creates tables if they don't already exist
@@ -39,6 +40,7 @@ app.include_router(users.router)
 app.include_router(auth.router)
 app.include_router(sessions.router)
 app.include_router(audit_logs.router)
+app.include_router(customer.router)
 
 
 @app.get("/", tags=["Health"])

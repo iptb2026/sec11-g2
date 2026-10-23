@@ -1,0 +1,8 @@
+{
+  "appId": "ph.edu.iptb.espada.bank",
+  "appName": "Espada Bank",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "http"
+  }
+}

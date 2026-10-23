@@ -3,8 +3,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
+from app.core.security import get_current_admin
 from app.models.account import Account
 from app.models.deposit import Deposit
+from app.models.ledger_entry import LedgerEntry
 from app.models.user import User
 from app.schemas.deposit import DepositCreate, DepositOut
 
@@ -12,7 +14,11 @@ router = APIRouter(prefix="/deposits", tags=["Layer 4 - Deposits"])
 
 
 @router.post("/", response_model=DepositOut, status_code=status.HTTP_201_CREATED)
-def create_deposit(deposit: DepositCreate, db: Session = Depends(get_db)):
+def create_deposit(
+    deposit: DepositCreate,
+    admin: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
     account = (
         db.query(Account)
         .filter(Account.id == deposit.account_id)
@@ -43,11 +49,20 @@ def create_deposit(deposit: DepositCreate, db: Session = Depends(get_db)):
             detail="reference_number already exists",
         )
 
-    new_deposit = Deposit(**deposit.model_dump())
+    new_deposit = Deposit(**deposit.model_dump(exclude={"deposited_by_user_id"}), deposited_by_user_id=admin.id)
     db.add(new_deposit)
 
     account.available_balance += deposit.amount
     account.ledger_balance += deposit.amount
+    db.add(LedgerEntry(
+        account_id=account.id,
+        transaction_reference=deposit.reference_number,
+        transaction_type="DEPOSIT",
+        credit_amount=deposit.amount,
+        debit_amount=0,
+        balance_after=account.available_balance,
+        transaction_date=deposit.transaction_date,
+    ))
 
     db.commit()
     db.refresh(new_deposit)
