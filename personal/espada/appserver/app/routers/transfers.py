@@ -5,8 +5,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
+from app.core.security import get_current_user
 from app.models.account import Account
+from app.models.ledger_entry import LedgerEntry
 from app.models.transfer import Transfer
+from app.models.user import User
 from app.schemas.transfer import TransferCreate, TransferOut
 
 router = APIRouter(
@@ -16,12 +19,18 @@ router = APIRouter(
 
 
 @router.post("/", response_model=TransferOut, status_code=status.HTTP_201_CREATED)
-def create_transfer(transfer: TransferCreate, db: Session = Depends(get_db)):
+def create_transfer(
+    transfer: TransferCreate,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     if transfer.source_account_id == transfer.destination_account_id:
         raise HTTPException(
             status_code=400,
             detail="source and destination accounts must be different"
         )
+    if transfer.amount <= 0:
+        raise HTTPException(status_code=400, detail="Transfer amount must be greater than zero")
 
     # Lock both accounts to prevent lost updates.
     first_id, second_id = sorted([
@@ -51,6 +60,8 @@ def create_transfer(transfer: TransferCreate, db: Session = Depends(get_db)):
             status_code=400,
             detail="destination_account_id does not exist"
         )
+    if source.customer_id != user.id:
+        raise HTTPException(status_code=403, detail="You can only transfer from your own account")
 
     existing = db.query(Transfer).filter(
         Transfer.transfer_reference == transfer.transfer_reference
@@ -87,6 +98,24 @@ def create_transfer(transfer: TransferCreate, db: Session = Depends(get_db)):
 
     destination.available_balance += transfer.amount
     destination.ledger_balance += transfer.amount
+    db.add(LedgerEntry(
+        account_id=source.id,
+        transaction_reference=transfer.transfer_reference,
+        transaction_type="TRANSFER_DEBIT",
+        debit_amount=transfer.amount,
+        credit_amount=0,
+        balance_after=source.available_balance,
+        transaction_date=datetime.utcnow(),
+    ))
+    db.add(LedgerEntry(
+        account_id=destination.id,
+        transaction_reference=transfer.transfer_reference,
+        transaction_type="TRANSFER_CREDIT",
+        debit_amount=0,
+        credit_amount=transfer.amount,
+        balance_after=destination.available_balance,
+        transaction_date=datetime.utcnow(),
+    ))
 
     db.commit()
     db.refresh(new_transfer)

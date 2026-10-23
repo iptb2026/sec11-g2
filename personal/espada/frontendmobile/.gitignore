@@ -1,0 +1,10 @@
+node_modules/
+.quasar/
+dist/
+src-capacitor/node_modules/
+src-capacitor/www/
+src-capacitor/android/.gradle/
+src-capacitor/android/app/build/
+src-capacitor/android/local.properties
+.env
+releases/*.apk
