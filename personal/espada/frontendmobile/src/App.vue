@@ -10,7 +10,7 @@
         <p v-if="error" class="error">{{ error }}</p>
         <button :disabled="loading">{{ loading ? 'Signing in…' : 'Sign in securely' }}</button>
       </form>
-      <p class="demo-note">Demo banking app · No real money</p>
+      <p class="demo-note">Test build · Demo banking app · No real money</p>
     </section>
     <section v-else class="banking">
       <header><div class="header-brand"><span class="mini-mark">B</span><div><strong>BEMBank</strong><small>Digital wallet</small></div></div><button class="link" @click="logout">Log out</button></header>
