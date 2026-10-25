@@ -1,0 +1,6 @@
+.bembank-otp.key
+__pycache__/
+*.pyc
+/.venv/
+/bembank-demo.sqlite3
+/bembank-demo.sqlite3-*

@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+sqlalchemy
+pymysql
+pydantic[email]
+python-jose[cryptography]
+python-multipart
+bcrypt
+httpx
+-r requirements-google.txt
+-r requirements-otp.txt
+-r requirements-profile.txt
