@@ -6,7 +6,7 @@
           <section class="login-brand-panel">
             <div class="login-brand-top">
               <div class="login-brand-mark"><BankLogo /></div>
-              <span>bembank.</span>
+              <span><button class="server-trigger" type="button" aria-label="Demo server settings" @click="serverOpen = true">b</button>embank.</span>
             </div>
             <div class="login-brand-copy">
               <div class="eyebrow">YOUR MONEY. YOUR POSSIBILITIES.</div>
@@ -22,7 +22,7 @@
 
           <section class="login-form-panel">
             <div class="login-form-content">
-              <div class="mobile-login-logo"><BankLogo /></div>
+              <button class="mobile-login-logo server-trigger" type="button" aria-label="Demo server settings" @click="serverOpen = true"><BankLogo /></button>
               <div class="eyebrow">Account access</div>
               <h2 class="login-form-title">{{ pinChallenge ? (pinSetup ? 'Create your PIN' : 'Enter your PIN') : challenge ? 'Verify your sign-in' : 'Welcome back' }}</h2>
               <p class="login-form-subtitle">{{ pinChallenge ? (pinSetup ? 'Choose a six-digit PIN for future sign-ins. Confirm it below to continue.' : 'Enter your six-digit PIN to finish signing in.') : challenge ? 'Enter the six-digit code from your authenticator app. Your sign-in request lasts five minutes.' : 'Sign in to your Bembank account' }}</p>
@@ -95,6 +95,18 @@
               <template v-if="!challenge && !pinChallenge">
                 <p class="login-signup-link">Don't have an account? <router-link to="/signup">Sign up</router-link></p>
               </template>
+              <q-dialog v-model="serverOpen">
+                <q-card style="width:440px;max-width:95vw">
+                  <q-form @submit="saveServer">
+                    <q-card-section class="q-gutter-md">
+                      <h2 class="section-heading">Demo server</h2>
+                      <p>Connect this phone and the demo laptop to the same Wi-Fi, then enter the laptop address.</p>
+                      <q-input v-model.trim="serverUrl" filled autofocus label="Backend address" placeholder="http://192.168.1.20:5001/" :error="!!serverError" :error-message="serverError" />
+                    </q-card-section>
+                    <q-card-actions align="right"><q-btn flat label="Cancel" v-close-popup /><q-btn color="primary" label="Save" type="submit" /></q-card-actions>
+                  </q-form>
+                </q-card>
+              </q-dialog>
             </div>
           </section>
         </div>
@@ -104,10 +116,12 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth-store'
 import BankLogo from '@/components/BankLogo.vue'
+import api from '@/services/api'
+import { savedApiUrl, saveApiUrl } from '@/utils/api-url'
 
 const username = ref('')
 const password = ref('')
@@ -125,6 +139,26 @@ const useRecovery = ref(false)
 const auth = useAuthStore()
 const router = useRouter()
 const recoveryHelp = ref(false)
+const serverOpen = ref(false)
+const serverUrl = ref(savedApiUrl() || api.defaults.baseURL)
+const serverError = ref('')
+
+function openServerWithB (event) {
+  if (event.key.toLowerCase() === 'b' && !['INPUT', 'TEXTAREA'].includes(event.target.tagName)) serverOpen.value = true
+}
+
+onMounted(() => window.addEventListener('keydown', openServerWithB))
+onBeforeUnmount(() => window.removeEventListener('keydown', openServerWithB))
+
+function saveServer () {
+  try {
+    api.defaults.baseURL = saveApiUrl(serverUrl.value)
+    serverError.value = ''
+    serverOpen.value = false
+  } catch (error) {
+    serverError.value = error.message || 'Enter a valid server address.'
+  }
+}
 
 async function onSubmit () {
   loading.value = true

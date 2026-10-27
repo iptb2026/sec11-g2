@@ -730,6 +730,16 @@ select {
 	font-weight: 800;
 }
 
+.server-trigger {
+	appearance: none;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	cursor: pointer;
+}
+
 .login-brand-mark {
 	position: relative;
 	overflow: hidden;

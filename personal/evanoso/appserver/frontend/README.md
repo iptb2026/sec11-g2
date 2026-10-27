@@ -37,6 +37,17 @@ Everything from here on assumes you're inside `appserver/frontend/`.
 
 ## 1. Local Setup
 
+### Android demo on another laptop
+
+The APK is portable; it does not contain the build laptop's address. On the demo laptop, start
+the backend with `./run.sh`, allow TCP port `5001` through its firewall, and connect the laptop
+and phone to the same Wi-Fi or phone hotspot. On the APK sign-in screen, tap the blue **B** logo
+to reveal **Demo server**, then enter `http://<demo-laptop-ip>:5001/` (for example,
+`http://192.168.1.20:5001/`). See [`../../README.md`](../../README.md) for the complete demo guide.
+
+Use the laptop's Wi-Fi IPv4 address, not `localhost` or `127.0.0.1`. Local HTTP is enabled only
+for this classroom setup; use HTTPS before sending real credentials over an untrusted network.
+
 ### 1.1 Check Node.js & npm
 
 ```bash

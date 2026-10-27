@@ -1,9 +1,10 @@
 import axios from 'axios'
+import { savedApiUrl } from '@/utils/api-url'
 
 const api = axios.create({
   baseURL: import.meta.env.DEV
     ? '/bembank/api/'
-    : import.meta.env.QCLI_API_BASE_URL || 'http://127.0.0.1:8000',
+    : savedApiUrl() || import.meta.env.QCLI_API_BASE_URL || 'http://127.0.0.1:8000',
 })
 
 // Never render validation objects or internal server details in customer forms.
