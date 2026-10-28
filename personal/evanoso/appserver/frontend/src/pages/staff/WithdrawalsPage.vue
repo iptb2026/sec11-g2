@@ -18,7 +18,7 @@
           <q-banner v-if="accountOptions.length === 0" dense class="bg-orange-1 text-dark">
             No accounts are available. Create an account under Staff &gt; Accounts first.
           </q-banner>
-          <q-select
+          <search-select
             v-model="form.account_id"
             label="Account"
             filled
@@ -35,7 +35,7 @@
                 </q-item-section>
               </q-item>
             </template>
-          </q-select>
+          </search-select>
           <q-input
             v-if="form.account_id"
             :model-value="accountHolderName"
@@ -73,7 +73,6 @@ const $q = useQuasar()
 
 const columns = [
   { name: 'id', label: 'ID', field: 'id', align: 'left' },
-  { name: 'account_id', label: 'Auto ID', field: 'account_id', align: 'left' },
   { name: 'account_number', label: 'Account Number', field: (row) => accountNumberByAccountId.value[row.account_id] || '', align: 'left' },
   { name: 'account_name', label: 'Account Name', field: (row) => accountHolderByAccountId.value[row.account_id] || '', align: 'left' },
   { name: 'reference_number', label: 'Reference', field: 'reference_number', align: 'left' },

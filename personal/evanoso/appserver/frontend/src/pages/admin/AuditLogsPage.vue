@@ -29,7 +29,7 @@ const title = value => String(value || '—').replaceAll('_', ' ').toLowerCase()
 
 const columns = [
   { name: 'id', label: 'ID', field: 'id', align: 'left' },
-  { name: 'user_id', label: 'User ID', field: 'user_id', align: 'left' },
+  { name: 'user_id', label: 'Performed by', field: row => row.user_id ? userNames.value[row.user_id] || `User #${row.user_id}` : 'System', align: 'left' },
   { name: 'action_type', label: 'Action', field: 'action_type', format: title, align: 'left' },
   { name: 'entity_name', label: 'Activity', field: 'entity_name', format: value => value === 'presentation_demo_v1' ? 'Account setup' : title(value), align: 'left' },
   { name: 'entity_id', label: 'Entity ID', field: 'entity_id', align: 'left' },
@@ -38,14 +38,16 @@ const columns = [
 ]
 
 const rows = ref([])
+const userNames = ref({})
 const loading = ref(false)
 
 async function loadRows () {
   loading.value = true
   errorMessage.value = ''
   try {
-    const { data } = await api.get('/audit-logs/')
-    rows.value = data
+    const [{ data: logs }, { data: users }] = await Promise.all([api.get('/audit-logs/'), api.get('/users/')])
+    rows.value = logs
+    userNames.value = Object.fromEntries(users.map(user => [user.id, `${user.first_name} ${user.last_name} (${user.username})`]))
   } catch {
     errorMessage.value = 'Activity could not be loaded. Please try again.'
   } finally {

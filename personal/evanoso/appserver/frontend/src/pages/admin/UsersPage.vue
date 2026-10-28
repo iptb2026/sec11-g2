@@ -21,14 +21,15 @@
           <div class="text-h6">{{ editingId ? 'Edit User' : 'New User' }}</div>
         </q-card-section>
 
+        <q-form @submit="save">
         <q-card-section class="q-gutter-md">
-          <q-input v-model="form.username" label="Username" filled />
-          <NewPasswordField v-model="form.password" label="Password" />
-          <q-input v-model="form.email" label="Email" filled />
+          <q-input v-model.trim="form.username" label="Username" filled :rules="[required, validUsername]" />
+          <NewPasswordField v-if="!editingId" v-model="form.password" label="Initial password" />
+          <q-input v-model.trim="form.email" label="Email (optional)" type="email" filled :rules="[validEmail]" />
           <q-input v-model="form.mobile_number" label="Mobile Number" filled />
-          <q-input v-model="form.first_name" label="First Name" filled />
-          <q-input v-model="form.middle_name" label="Middle Name" filled />
-          <q-input v-model="form.last_name" label="Last Name" filled />
+          <q-input v-model.trim="form.first_name" label="First Name" filled :rules="[required]" />
+          <q-input v-model.trim="form.middle_name" label="Middle Name (optional)" filled />
+          <q-input v-model.trim="form.last_name" label="Last Name" filled :rules="[required]" />
           <DatePickerField v-model="form.date_of_birth" label="Date of Birth" filled clearable />
           <q-select
             v-model="form.role_id"
@@ -37,14 +38,25 @@
             emit-value
             map-options
             :options="roleOptions"
+            :rules="[required]"
           />
-          <q-input v-model="form.account_status" label="Account Status" filled hint="e.g. ACTIVE" />
+          <q-select
+            v-if="editingId"
+            v-model="form.account_status"
+            label="Account access"
+            filled
+            emit-value
+            map-options
+            :options="statusOptions"
+            hint="Locked is temporary; Disabled blocks access until re-enabled."
+          />
         </q-card-section>
 
         <q-card-actions align="right">
           <q-btn flat label="Cancel" v-close-popup />
-          <q-btn color="primary" label="Save" @click="save" />
+          <q-btn color="primary" label="Save" type="submit" />
         </q-card-actions>
+        </q-form>
       </q-card>
     </q-dialog>
   </q-page>
@@ -57,6 +69,7 @@ import DatePickerField from '@/components/DatePickerField.vue'
 import { ref, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import api from '@/services/api'
+import { optionLabel } from '@/utils/filter-options'
 
 const $q = useQuasar()
 
@@ -66,16 +79,24 @@ const columns = [
   { name: 'email', label: 'Email', field: 'email', align: 'left' },
   { name: 'first_name', label: 'First Name', field: 'first_name', align: 'left' },
   { name: 'last_name', label: 'Last Name', field: 'last_name', align: 'left' },
-  { name: 'role_id', label: 'Role ID', field: 'role_id', align: 'left' },
+  { name: 'role_id', label: 'Role', field: row => optionLabel(roleOptions.value, row.role_id), align: 'left' },
   { name: 'account_status', label: 'Status', field: 'account_status', align: 'left' },
   { name: 'actions', label: 'Actions', field: 'actions', align: 'right' },
 ]
 
 const rows = ref([])
 const roleOptions = ref([])
+const statusOptions = [
+  { label: 'Active — can sign in', value: 'ACTIVE' },
+  { label: 'Locked — temporarily blocked', value: 'LOCKED' },
+  { label: 'Disabled — access turned off', value: 'DISABLED' },
+]
 const loading = ref(false)
 const showDialog = ref(false)
 const editingId = ref(null)
+const required = value => (value !== null && value !== undefined && String(value).trim() !== '') || 'This field is required'
+const validUsername = value => /^[a-zA-Z0-9_.-]{3,100}$/.test(value) || 'Use 3–100 letters, numbers, dots, dashes, or underscores'
+const validEmail = value => !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) || 'Enter a valid email address'
 const emptyForm = () => ({
   username: '',
   password: '',
@@ -126,11 +147,15 @@ function openEdit (row) {
 }
 
 async function save () {
-  const validation = passwordRule(form.value.password)
-  if (validation !== true) { $q.notify({ type: 'negative', message: validation }); return }
+  if (!editingId.value) {
+    const validation = passwordRule(form.value.password)
+    if (validation !== true) { $q.notify({ type: 'negative', message: validation }); return }
+  }
   try {
     if (editingId.value) {
-      await api.put(`/users/${editingId.value}`, form.value)
+      const user = { ...form.value }
+      delete user.password
+      await api.put(`/users/${editingId.value}`, user)
     } else {
       await api.post('/users/', form.value)
     }

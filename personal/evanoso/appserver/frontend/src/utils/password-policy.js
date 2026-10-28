@@ -6,7 +6,6 @@ export const passwordChecks = value => {
     { label: 'A lowercase letter (a–z)', met: /[a-z]/.test(text) },
     { label: 'A number (0–9)', met: /[0-9]/.test(text) },
     { label: 'A symbol, such as ! @ # $', met: /[!"#$%&'()*+,\-./:;<=>?@[\]\\^_`{|}~]/.test(text) },
-    { label: 'No more than 72 bytes', met: new TextEncoder().encode(text).length <= 72 },
   ]
 }
 export const passwordRule = value => passwordChecks(value).every(check => check.met) || 'Complete all password requirements below.'

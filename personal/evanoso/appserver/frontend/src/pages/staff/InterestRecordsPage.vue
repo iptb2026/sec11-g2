@@ -22,7 +22,7 @@
         </q-card-section>
 
         <q-card-section class="q-gutter-md">
-          <q-select
+          <search-select
             v-model="form.account_id"
             label="Account"
             filled
@@ -30,7 +30,7 @@
             map-options
             :options="accountOptions"
           />
-          <q-select
+          <search-select
             v-model="form.policy_id"
             label="Interest Policy"
             filled
@@ -54,13 +54,14 @@
 import { ref, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import api from '@/services/api'
+import { optionLabel } from '@/utils/filter-options'
 
 const $q = useQuasar()
 
 const columns = [
   { name: 'id', label: 'ID', field: 'id', align: 'left' },
-  { name: 'account_id', label: 'Account ID', field: 'account_id', align: 'left' },
-  { name: 'policy_id', label: 'Policy ID', field: 'policy_id', align: 'left' },
+  { name: 'account_id', label: 'Account', field: row => optionLabel(accountOptions.value, row.account_id), align: 'left' },
+  { name: 'policy_id', label: 'Policy', field: row => optionLabel(policyOptions.value, row.policy_id), align: 'left' },
   { name: 'amount_credited', label: 'Amount Credited', field: 'amount_credited', align: 'right' },
   { name: 'balance_before', label: 'Balance Before', field: 'balance_before', align: 'right' },
   { name: 'balance_after', label: 'Balance After', field: 'balance_after', align: 'right' },
@@ -84,10 +85,9 @@ async function loadRows () {
 }
 
 async function loadOptions () {
-  const { data: accounts } = await api.get('/accounts/')
-  accountOptions.value = accounts.map((a) => ({ label: a.account_number, value: a.id }))
-
-  const { data: policies } = await api.get('/interest-policies/')
+  const [{ data: accounts }, { data: users }, { data: policies }] = await Promise.all([api.get('/accounts/'), api.get('/users/'), api.get('/interest-policies/')])
+  const names = Object.fromEntries(users.map(user => [user.id, `${user.first_name} ${user.last_name}`]))
+  accountOptions.value = accounts.map(account => ({ label: account.account_number, holder: names[account.customer_id], value: account.id }))
   policyOptions.value = policies.map((p) => ({ label: p.policy_name, value: p.id }))
 }
 

@@ -32,7 +32,7 @@
           />
           <q-input v-model="form.policy_name" label="Policy Name" filled />
           <q-input v-model.number="form.annual_rate" label="Annual Rate %" type="number" filled />
-          <q-input v-model="form.compounding_frequency" label="Compounding Frequency" filled hint="e.g. MONTHLY" />
+          <q-select v-model="form.compounding_frequency" label="Compounding frequency" filled emit-value map-options :options="compoundingOptions" />
           <DatePickerField v-model="form.effective_date" label="Effective Date" filled />
           <DatePickerField v-model="form.expiration_date" label="Expiration Date" filled clearable />
         </q-card-section>
@@ -51,12 +51,13 @@ import DatePickerField from '@/components/DatePickerField.vue'
 import { ref, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import api from '@/services/api'
+import { optionLabel } from '@/utils/filter-options'
 
 const $q = useQuasar()
 
 const columns = [
   { name: 'id', label: 'ID', field: 'id', align: 'left' },
-  { name: 'account_type_id', label: 'Account Type ID', field: 'account_type_id', align: 'left' },
+  { name: 'account_type_id', label: 'Account type', field: row => optionLabel(accountTypeOptions.value, row.account_type_id), align: 'left' },
   { name: 'policy_name', label: 'Policy Name', field: 'policy_name', align: 'left' },
   { name: 'annual_rate', label: 'Annual Rate %', field: 'annual_rate', align: 'right' },
   { name: 'compounding_frequency', label: 'Compounding', field: 'compounding_frequency', align: 'left' },
@@ -66,6 +67,12 @@ const columns = [
 
 const rows = ref([])
 const accountTypeOptions = ref([])
+const compoundingOptions = [
+  { label: 'Daily', value: 'DAILY' },
+  { label: 'Monthly', value: 'MONTHLY' },
+  { label: 'Quarterly', value: 'QUARTERLY' },
+  { label: 'Yearly', value: 'YEARLY' },
+]
 const loading = ref(false)
 const showDialog = ref(false)
 const editingId = ref(null)

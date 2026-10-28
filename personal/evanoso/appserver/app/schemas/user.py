@@ -3,12 +3,13 @@ from app.core.password_policy import StrongPassword
 from datetime import date, datetime
 from typing import Optional, Literal
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr
 
 
-class UserCreate(BaseModel):
+class UserUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     username: str
-    password: StrongPassword
     email: Optional[EmailStr] = None
     mobile_number: Optional[str] = None
     first_name: str
@@ -17,6 +18,10 @@ class UserCreate(BaseModel):
     date_of_birth: Optional[date] = None
     role_id: int
     account_status: Literal["ACTIVE", "LOCKED", "DISABLED"] = "ACTIVE"
+
+
+class UserCreate(UserUpdate):
+    password: StrongPassword
 
 
 class UserOut(BaseModel):

@@ -18,7 +18,7 @@
           <q-banner v-if="accountOptions.length < 2" dense class="bg-orange-1 text-dark">
             At least two accounts are needed. Create accounts under Staff &gt; Accounts first.
           </q-banner>
-          <q-select
+          <search-select
             v-model="form.source_account_id"
             label="Source Account"
             filled
@@ -35,8 +35,8 @@
                 </q-item-section>
               </q-item>
             </template>
-          </q-select>
-          <q-select
+          </search-select>
+          <search-select
             v-model="form.destination_account_id"
             label="Destination Account"
             filled
@@ -53,10 +53,10 @@
                 </q-item-section>
               </q-item>
             </template>
-          </q-select>
+          </search-select>
           <q-input v-model="form.transfer_reference" label="Transfer Reference" filled />
           <q-input v-model.number="form.amount" label="Amount" type="number" filled />
-          <q-input v-model="form.transfer_type" label="Transfer Type" filled />
+          <q-select v-model="form.transfer_type" label="Transfer type" filled emit-value map-options :options="transferTypeOptions" />
           <q-input v-model="form.remarks" label="Remarks" type="textarea" filled />
         </q-card-section>
 
@@ -73,13 +73,14 @@
 import { ref, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import api from '@/services/api'
+import { optionLabel } from '@/utils/filter-options'
 
 const $q = useQuasar()
 
 const columns = [
   { name: 'id', label: 'ID', field: 'id', align: 'left' },
-  { name: 'source_account_id', label: 'From Account ID', field: 'source_account_id', align: 'left' },
-  { name: 'destination_account_id', label: 'To Account ID', field: 'destination_account_id', align: 'left' },
+  { name: 'source_account_id', label: 'From account', field: row => optionLabel(accountOptions.value, row.source_account_id), align: 'left' },
+  { name: 'destination_account_id', label: 'To account', field: row => optionLabel(accountOptions.value, row.destination_account_id), align: 'left' },
   { name: 'transfer_reference', label: 'Reference', field: 'transfer_reference', align: 'left' },
   { name: 'amount', label: 'Amount', field: 'amount', align: 'right' },
   { name: 'status', label: 'Status', field: 'status', align: 'left' },
@@ -87,6 +88,10 @@ const columns = [
 
 const rows = ref([])
 const accountOptions = ref([])
+const transferTypeOptions = [
+  { label: 'Internal transfer', value: 'INTERNAL' },
+  { label: 'Scheduled transfer', value: 'SCHEDULED' },
+]
 const loading = ref(false)
 const showDialog = ref(false)
 const editingId = ref(null)

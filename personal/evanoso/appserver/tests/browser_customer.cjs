@@ -26,7 +26,7 @@ function totp(secret) {
     if (path === '/auth/otp/setup' && response.ok()) setupSecret = (await response.json()).secret;
     await route.fulfill({ response });
   });
-  const goto = async path => { const link = page.locator(`a[href="#${path}"]`).first(); if (page.viewportSize().width >= 1024 && await link.isVisible()) await link.click(); else { await page.goto('http://127.0.0.1:9000/bembank/#' + path); await page.reload(); } const titles = { '/requests': 'Deposits & withdrawals', '/customer/cards': 'My cards', '/customer/savings': 'Savings goals', '/my-account': 'My accounts', '/customer/transfers': 'Send funds', '/customer/bill-payments': 'Pay bills', '/customer/investments': 'Investments', '/my-transactions': 'Transactions', '/customer/notifications': 'Activity alerts', '/profile': 'Profile & security' }; if (titles[path]) await page.getByRole('heading', { name: titles[path], exact: true }).waitFor(); await page.waitForLoadState('networkidle'); };
+  const goto = async path => { const link = page.locator(`a[href="#${path}"]`).first(); if (page.viewportSize().width >= 1024 && await link.isVisible()) await link.click(); else { await page.goto('http://127.0.0.1:9000/bembank/#' + path); await page.reload(); } const titles = { '/requests': 'Deposits & withdrawals', '/customer/cards': 'My cards', '/my-account': 'My accounts', '/customer/transfers': 'Send funds', '/customer/bill-payments': 'Pay bills', '/my-transactions': 'Transactions', '/customer/notifications': 'Activity alerts', '/profile': 'Profile & security' }; if (titles[path]) await page.getByRole('heading', { name: titles[path], exact: true }).waitFor(); await page.waitForLoadState('networkidle'); };
   const choose = async label => { await page.getByLabel(label, { exact: true }).click(); await page.getByRole('option').first().click(); };
   const signIn = async () => { await goto('/login'); await page.getByLabel('Username', { exact: true }).fill('alice'); await page.getByLabel('Password', { exact: true }).fill('test-password-123'); await page.getByRole('button', { name: 'Sign in', exact: true }).click(); };
   await signIn(); await page.getByRole('heading', { name: /Welcome back,/ }).waitFor();
@@ -54,12 +54,6 @@ function totp(secret) {
   await page.getByText('Report lost card', { exact: true }).click(); await page.getByRole('button', { name: 'OK', exact: true }).click(); await page.locator('.virtual-card').getByText('LOST', { exact: true }).waitFor();
   console.log('PASS: card creation, freeze/unfreeze, limit, PIN, lost-card report');
 
-  await goto('/customer/savings'); await page.getByRole('button', { name: 'New goal', exact: true }).click();
-  await page.getByLabel('Goal name').fill('Laptop'); await page.getByLabel('Target amount (PHP)').fill('5000'); await page.getByLabel('Saved so far (PHP)').fill('250');
-  await page.getByRole('button', { name: 'Save goal' }).click(); await page.getByRole('heading', { name: 'Laptop', exact: true }).waitFor();
-  await page.getByRole('button', { name: 'Update progress' }).click(); await page.getByLabel('Saved so far (PHP)').fill('500'); await page.getByRole('button', { name: 'Save goal' }).click(); await page.getByText('10% complete', { exact: true }).waitFor();
-  console.log('PASS: persistent savings goal and progress update');
-
   await goto('/my-account'); await page.getByRole('button', { name: 'Receive', exact: true }).click(); await page.getByAltText('QR code with account details').waitFor(); await page.getByRole('button', { name: 'Close', exact: true }).click();
   await page.getByRole('button', { name: 'Request an account' }).click(); await choose('Account type'); await page.getByRole('button', { name: 'Submit application' }).click(); await page.locator('td').filter({ hasText: /^PENDING$/ }).waitFor();
   console.log('PASS: account details, receive QR, account application');
@@ -72,8 +66,7 @@ function totp(secret) {
 
   await goto('/customer/bill-payments'); await choose('Pay from account'); await page.getByLabel('Biller', { exact: true }).fill('Electricity'); await page.getByLabel('Customer or invoice reference').fill('INV-100'); await page.getByLabel('Amount (PHP)', { exact: true }).fill('100');
   await page.getByRole('button', { name: 'Review payment' }).click(); await page.getByRole('button', { name: 'Confirm payment' }).click(); await page.getByRole('cell', { name: 'Electricity', exact: true }).waitFor();
-  await goto('/customer/investments'); await choose('Allocate from account'); await page.getByLabel('Amount (PHP)', { exact: true }).fill('200'); await page.getByRole('button', { name: 'Allocate funds' }).click(); await page.getByRole('button', { name: 'Redeem', exact: true }).click(); await page.getByRole('button', { name: 'OK', exact: true }).click(); await page.locator('td').filter({ hasText: /^REDEEMED$/ }).waitFor();
-  console.log('PASS: confirmed bill payment and investment allocation/redemption');
+  console.log('PASS: confirmed bill payment');
 
   await goto('/my-transactions'); await page.getByLabel('Search transactions').fill('BILL PAYMENT'); await page.locator('td').filter({ hasText: /^BILL PAYMENT$/ }).waitFor();
   let download = page.waitForEvent('download'); await page.getByRole('button', { name: 'Export CSV' }).click(); await download;
@@ -98,11 +91,11 @@ function totp(secret) {
   console.log('PASS: recovery-code login and authenticator-code login');
 
   await page.setViewportSize({ width: 390, height: 844 });
-  for (const path of ['/', '/requests', '/customer/cards', '/customer/savings', '/customer/notifications', '/profile', '/my-account', '/customer/transfers', '/customer/bill-payments', '/customer/investments', '/my-transactions']) {
+  for (const path of ['/', '/requests', '/customer/cards', '/customer/notifications', '/profile', '/my-account', '/customer/transfers', '/customer/bill-payments', '/my-transactions']) {
     await goto(path); await page.waitForTimeout(150);
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'Overflow: ' + path);
   }
   assert.deepEqual(browserErrors, []); assert.deepEqual(badResponses, []);
-  console.log('PASS: all 11 customer menu destinations at mobile width, zero browser errors or failed API responses');
+  console.log('PASS: all customer menu destinations at mobile width, zero browser errors or failed API responses');
   await browser.close();
 })().catch(async error => { console.error(error); if (debugPage) { console.log('Page:', debugPage.url()); console.log('Table cells:', await debugPage.getByRole('cell').allTextContents()); console.log('Form messages:', await debugPage.locator('.q-notification__message, .q-field__messages, .bank-feedback').allTextContents()); } process.exit(1); });

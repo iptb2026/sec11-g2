@@ -24,7 +24,7 @@
         </div>
 
         <q-form class="customer-form" @submit.prevent="reviewOpen = true">
-          <q-select
+          <search-select
             v-model="form.account_id"
             label="Pay from account"
             filled

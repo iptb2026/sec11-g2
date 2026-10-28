@@ -22,7 +22,7 @@
         </q-card-section>
 
         <q-card-section class="q-gutter-md">
-          <q-select
+          <search-select
             v-model="form.account_id"
             label="Account"
             filled
@@ -38,7 +38,7 @@
                 </q-item-section>
               </q-item>
             </template>
-          </q-select>
+          </search-select>
           <q-input
             v-if="form.account_id"
             :model-value="accountHolderName"
@@ -64,12 +64,13 @@ import DatePickerField from '@/components/DatePickerField.vue'
 import { ref, computed, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import api from '@/services/api'
+import { optionLabel } from '@/utils/filter-options'
 
 const $q = useQuasar()
 
 const columns = [
   { name: 'id', label: 'ID', field: 'id', align: 'left' },
-  { name: 'account_id', label: 'Account ID', field: 'account_id', align: 'left' },
+  { name: 'account_id', label: 'Account', field: row => optionLabel(accountOptions.value, row.account_id), align: 'left' },
   { name: 'daily_limit_amount', label: 'Daily Limit', field: 'daily_limit_amount', align: 'right' },
   { name: 'daily_used_amount', label: 'Used Today', field: 'daily_used_amount', align: 'right' },
   { name: 'last_reset_date', label: 'Last Reset', field: 'last_reset_date', align: 'left' },

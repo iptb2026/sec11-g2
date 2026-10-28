@@ -5,13 +5,10 @@ export const customerActionGroups = [
     { label: 'Deposit / withdraw', icon: 'payments', to: '/requests' },
     { label: 'Other banks', icon: 'account_balance', to: '/customer/other-banks' },
     { label: 'Pay bills', icon: 'receipt_long', to: '/customer/bill-payments' },
-    { label: 'Buy load', icon: 'phone_android', to: '/customer/mobile-load' },
   ] },
   { label: 'Manage your money', items: [
     { label: 'My account', icon: 'account_balance_wallet', to: '/my-account' },
     { label: 'My cards', icon: 'credit_card', to: '/customer/cards' },
-    { label: 'Savings goals', icon: 'savings', to: '/customer/savings' },
-    { label: 'Investments', icon: 'trending_up', to: '/customer/investments' },
     { label: 'Transactions', icon: 'history', to: '/my-transactions' },
     { label: 'Statements', icon: 'description', to: '/statements' },
   ] },

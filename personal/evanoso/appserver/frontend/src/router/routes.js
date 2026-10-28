@@ -15,11 +15,8 @@ const routes = [
       { path: 'statements', component: () => import('@/pages/StatementsPage.vue') },
       { path: 'customer/other-banks', component: () => import('@/pages/customer/OtherBankPage.vue'), meta: { roles: ['CUSTOMER'] } },
       { path: 'help', component: () => import('@/pages/HelpPage.vue') },
-      { path: 'customer/more', component: () => import('@/pages/customer/MorePage.vue'), meta: { roles: ['CUSTOMER'] } },
-      { path: 'customer/mobile-load', component: () => import('@/pages/customer/MobileLoadPage.vue'), meta: { roles: ['CUSTOMER'] } },
       { path: 'profile', component: () => import('@/pages/ProfilePage.vue') },
       { path: 'requests', component: () => import('@/pages/RequestsPage.vue') },
-      { path: 'customer/savings', component: () => import('@/pages/customer/SavingsPage.vue'), meta: { roles: ['CUSTOMER'] } },
       { path: 'customer/cards', component: () => import('@/pages/customer/CardsPage.vue'), meta: { roles: ['CUSTOMER'] } },
       { path: 'customer/notifications', component: () => import('@/pages/customer/NotificationsPage.vue'), meta: { roles: ['CUSTOMER'] } },
 
@@ -48,7 +45,6 @@ const routes = [
       { path: 'my-transactions', component: () => import('@/pages/customer/MyTransactionsPage.vue'), meta: { roles: ['CUSTOMER'] } },
       { path: 'customer/transfers', component: () => import('@/pages/customer/CustomerTransfersPage.vue'), meta: { roles: ['CUSTOMER'] } },
       { path: 'customer/bill-payments', component: () => import('@/pages/customer/BillPaymentsPage.vue'), meta: { roles: ['CUSTOMER'] } },
-      { path: 'customer/investments', component: () => import('@/pages/customer/InvestmentsPage.vue'), meta: { roles: ['CUSTOMER'] } },
     ],
   },
 

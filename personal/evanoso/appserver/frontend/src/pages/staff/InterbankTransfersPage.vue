@@ -42,7 +42,7 @@
             <template v-if="accountOptions.length === 0">Create an account under Staff &gt; Accounts. </template>
             <template v-if="bankOptions.length === 0">Add a target bank under Admin &gt; Banks.</template>
           </q-banner>
-          <q-select
+          <search-select
             v-model="form.source_account_id"
             label="Source Account"
             filled
@@ -51,7 +51,7 @@
             :options="accountOptions"
             :disable="accountOptions.length === 0"
           />
-          <q-select
+          <search-select
             v-model="form.target_bank_id"
             label="Target Bank"
             filled
@@ -80,13 +80,14 @@
 import { ref, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import api from '@/services/api'
+import { optionLabel } from '@/utils/filter-options'
 
 const $q = useQuasar()
 
 const columns = [
   { name: 'id', label: 'ID', field: 'id', align: 'left' },
-  { name: 'source_account_id', label: 'Source Account ID', field: 'source_account_id', align: 'left' },
-  { name: 'target_bank_id', label: 'Target Bank ID', field: 'target_bank_id', align: 'left' },
+  { name: 'source_account_id', label: 'Source account', field: row => optionLabel(accountOptions.value, row.source_account_id), align: 'left' },
+  { name: 'target_bank_id', label: 'Target bank', field: row => optionLabel(bankOptions.value, row.target_bank_id), align: 'left' },
   { name: 'reference_number', label: 'Reference', field: 'reference_number', align: 'left' },
   { name: 'amount', label: 'Amount', field: 'amount', align: 'right' },
   { name: 'transfer_fee', label: 'Fee', field: 'transfer_fee', align: 'right' },
@@ -119,10 +120,9 @@ async function loadRows () {
 }
 
 async function loadOptions () {
-  const { data: accounts } = await api.get('/accounts/')
-  accountOptions.value = accounts.map((a) => ({ label: a.account_number, value: a.id }))
-
-  const { data: banks } = await api.get('/banks/')
+  const [{ data: accounts }, { data: users }, { data: banks }] = await Promise.all([api.get('/accounts/'), api.get('/users/'), api.get('/banks/')])
+  const names = Object.fromEntries(users.map(user => [user.id, `${user.first_name} ${user.last_name}`]))
+  accountOptions.value = accounts.map(account => ({ label: account.account_number, holder: names[account.customer_id], value: account.id }))
   bankOptions.value = banks.map((b) => ({ label: `${b.bank_code} - ${b.bank_name}`, value: b.id }))
 }
 

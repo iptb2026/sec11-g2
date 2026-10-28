@@ -1,10 +1,13 @@
+import os
+
+
 class Settings:
     # --- Database ---
-    DB_USER: str = "evanoso"
-    DB_PASSWORD: str = "1234"
-    DB_HOST: str = "0.0.0.0"
-    DB_PORT: int = 3306
-    DB_NAME: str = "evanoso"
+    DB_USER: str = os.getenv("DB_USER", "evanoso")
+    DB_PASSWORD: str = os.getenv("DB_PASSWORD", "1234")
+    DB_HOST: str = os.getenv("DB_HOST", "0.0.0.0")
+    DB_PORT: int = int(os.getenv("DB_PORT", "3306"))
+    DB_NAME: str = os.getenv("DB_NAME", "evanoso")
 
     @property
     def DATABASE_URL(self) -> str:
@@ -14,7 +17,7 @@ class Settings:
         )
 
     # --- JWT ---
-    SECRET_KEY: str = "f5f6cfcb44c92deaffbeae47dca73bb6b209f35ad226df224af0c235a33090c6"
+    SECRET_KEY: str = os.getenv("SECRET_KEY", "f5f6cfcb44c92deaffbeae47dca73bb6b209f35ad226df224af0c235a33090c6")
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 

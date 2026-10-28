@@ -7,6 +7,9 @@
     </div>
 
     <q-banner v-if="errorMessage" class="bank-feedback q-mb-md">{{ errorMessage }}<template #action><q-btn flat label="Retry" @click="loadPage" /></template></q-banner>
+    <q-input v-model="accountSearch" filled dense clearable class="q-mb-md" label="Search accounts" placeholder="Account number, customer, status, or ID">
+      <template #prepend><q-icon name="search" /></template>
+    </q-input>
     <q-table
       :rows="groupedRows"
       :columns="columns"
@@ -46,7 +49,7 @@
             Create an account type in Admin &gt; Account Types before opening an account.
           </q-banner>
           <q-input v-model="form.account_number" label="Account Number" filled />
-          <q-select
+          <search-select
             v-model="form.customer_id"
             label="Customer"
             filled
@@ -80,14 +83,15 @@
 import { ref, computed, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import api from '@/services/api'
+import { filterOptions, optionLabel } from '@/utils/filter-options'
 
 const $q = useQuasar()
 
 const columns = [
   { name: 'id', label: 'ID', field: 'id', align: 'left' },
   { name: 'account_number', label: 'Account #', field: 'account_number', align: 'left' },
-  { name: 'customer_id', label: 'Customer ID', field: 'customer_id', align: 'left' },
-  { name: 'account_type_id', label: 'Type ID', field: 'account_type_id', align: 'left' },
+  { name: 'customer_id', label: 'Customer', field: row => customerNameById.value[row.customer_id] || `Customer #${row.customer_id}`, align: 'left' },
+  { name: 'account_type_id', label: 'Account type', field: row => optionLabel(accountTypeOptions.value, row.account_type_id), align: 'left' },
   { name: 'available_balance', label: 'Available Balance', field: 'available_balance', format: money, align: 'right' },
   { name: 'ledger_balance', label: 'Ledger Balance', field: 'ledger_balance', format: money, align: 'right' },
   { name: 'status', label: 'Status', field: 'status', align: 'left' },
@@ -100,6 +104,7 @@ const accountTypeOptions = ref([])
 const customerNameById = ref({})
 const loading = ref(false)
 const errorMessage = ref('')
+const accountSearch = ref('')
 function money (value, row) {
   const currency = /^[A-Z]{3}$/.test(row.currency_code || '') ? row.currency_code : 'PHP'
   return Number.isFinite(Number(value)) ? new Intl.NumberFormat('en-PH', { style: 'currency', currency }).format(Number(value)) : '—'
@@ -109,8 +114,13 @@ function rowKey (row) {
   return row.isGroupHeader ? row.key : row.id
 }
 
+const matchingRows = computed(() => filterOptions(rows.value.map(row => ({
+  label: `${row.id} ${row.account_number} ${customerNameById.value[row.customer_id] || ''} ${row.status}`,
+  value: row,
+})), accountSearch.value).map(option => option.value))
+
 const groupedRows = computed(() => {
-  const sorted = [...rows.value].sort((a, b) => {
+  const sorted = [...matchingRows.value].sort((a, b) => {
     const nameA = customerNameById.value[a.customer_id] || ''
     const nameB = customerNameById.value[b.customer_id] || ''
     return nameA.localeCompare(nameB) || String(a.account_number ?? '').localeCompare(String(b.account_number ?? ''))

@@ -25,8 +25,8 @@
         <q-input v-if="recipients.length || recentRecipients.length" v-model="recipientSearch" filled label="Search saved or recent recipients" class="q-mb-md" clearable />
         <div v-if="filteredRecent.length" class="q-mb-md"><div class="page-subtitle q-mb-sm">Recent recipients</div><q-chip v-for="person in filteredRecent" :key="person.account_number" clickable @click="form.destination_account_number = person.account_number">{{ person.name }} · {{ person.account_number }}</q-chip></div>
         <q-form ref="transferForm" class="customer-form" @submit.prevent="reviewTransfer">
-          <q-select v-if="recipients.length" filled label="Choose a saved recipient" :options="filteredRecipients.map(r => ({ label: `${r.name} · ${r.account_number}`, value: r.account_number }))" emit-value map-options v-model="form.destination_account_number" />
-          <q-select
+          <search-select v-if="recipients.length" filled label="Choose a saved recipient" :options="filteredRecipients.map(r => ({ label: `${r.name} · ${r.account_number}`, value: r.account_number }))" emit-value map-options v-model="form.destination_account_number" />
+          <search-select
             v-model="form.source_account_id"
             label="From account"
             filled

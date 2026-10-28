@@ -22,7 +22,7 @@
         </q-card-section>
 
         <q-card-section class="q-gutter-md">
-          <q-select
+          <search-select
             v-model="form.account_id"
             label="Account"
             filled
@@ -56,13 +56,14 @@
 import { ref, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import api from '@/services/api'
+import { optionLabel } from '@/utils/filter-options'
 
 const $q = useQuasar()
 
 const columns = [
   { name: 'id', label: 'ID', field: 'id', align: 'left' },
-  { name: 'account_id', label: 'Account ID', field: 'account_id', align: 'left' },
-  { name: 'fee_type_id', label: 'Fee Type ID', field: 'fee_type_id', align: 'left' },
+  { name: 'account_id', label: 'Account', field: row => optionLabel(accountOptions.value, row.account_id), align: 'left' },
+  { name: 'fee_type_id', label: 'Fee type', field: row => optionLabel(feeTypeOptions.value, row.fee_type_id), align: 'left' },
   { name: 'transaction_reference', label: 'Reference', field: 'transaction_reference', align: 'left' },
   { name: 'amount_charged', label: 'Amount Charged', field: 'amount_charged', align: 'right' },
   { name: 'charged_at', label: 'Charged At', field: 'charged_at', align: 'left' },
@@ -92,10 +93,9 @@ async function loadRows () {
 }
 
 async function loadOptions () {
-  const { data: accounts } = await api.get('/accounts/')
-  accountOptions.value = accounts.map((a) => ({ label: a.account_number, value: a.id }))
-
-  const { data: feeTypes } = await api.get('/fee-types/')
+  const [{ data: accounts }, { data: users }, { data: feeTypes }] = await Promise.all([api.get('/accounts/'), api.get('/users/'), api.get('/fee-types/')])
+  const names = Object.fromEntries(users.map(user => [user.id, `${user.first_name} ${user.last_name}`]))
+  accountOptions.value = accounts.map(account => ({ label: account.account_number, holder: names[account.customer_id], value: account.id }))
   feeTypeOptions.value = feeTypes.map((f) => ({ label: `${f.fee_code} - ${f.fee_name}`, value: f.id }))
 }
 

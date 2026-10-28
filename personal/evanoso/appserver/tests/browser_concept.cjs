@@ -69,15 +69,6 @@ let browser, page;
   await page.getByLabel('Search saved or recent recipients',{exact:true}).fill('bob');
   await page.getByText('bob Test · BEM0002',{exact:true}).waitFor();
   console.log('PASS QR image scanning, verified recipient, transfer confirmation, success, receipt, recent search');
-  await goto('/customer/mobile-load');
-  await choose('Pay from account',/BEM0001/);
-  await page.getByLabel('Mobile number',{exact:true}).fill('09171234567');
-  await page.getByRole('button',{name:'Review purchase',exact:true}).click();
-  await page.getByRole('button',{name:'Confirm purchase',exact:true}).click();
-  await page.getByText('Load purchase recorded',{exact:true}).waitFor();
-  await page.getByRole('button',{name:'OK',exact:true}).click();
-  await page.locator('td').filter({hasText:/^09171234567$/}).waitFor();
-  console.log('PASS load purchase confirmation and persistent history');
   await goto('/help');
   await page.getByLabel('Subject',{exact:true}).fill('Presentation QR question');
   await page.getByLabel('How can we help?',{exact:true}).fill('Can staff explain how to share my receive code?');
@@ -92,7 +83,7 @@ let browser, page;
   assert(await page.locator('html').evaluate(el=>el.classList.contains('bank-reduce-motion')));
   console.log('PASS saved balance privacy and reduced-motion settings');
   await page.setViewportSize({width:390,height:844});
-  for(const path of ['/customer/transfers','/customer/mobile-load','/help','/profile']){
+  for(const path of ['/customer/transfers','/help','/profile']){
     await goto(path);assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),path+' overflows');
   }
   await page.screenshot({path:'/tmp/bembank-concept-mobile.png',fullPage:true});

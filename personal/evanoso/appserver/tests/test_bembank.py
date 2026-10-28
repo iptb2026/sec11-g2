@@ -52,6 +52,7 @@ class BankingTests(unittest.TestCase):
         self.alice = self.login("alice")
         self.bob = self.login("bob")
         self.staff = self.login("staff")
+        self.admin = self.login("admin")
 
     def login(self, username):
         response = self.client.post('/auth/login', data={"username": username, "password": "test-password-123"})
@@ -70,6 +71,20 @@ class BankingTests(unittest.TestCase):
         self.assertEqual(self.client.get('/auth/me', headers=self.alice).json()['username'], 'alice')
         self.assertEqual(self.client.post('/auth/logout', headers=self.alice).status_code, 204)
         self.assertEqual(self.client.get('/auth/me', headers=self.alice).status_code, 401)
+
+    def test_admin_edit_user_does_not_require_or_change_password(self):
+        with TestSession() as db:
+            original_hash = db.get(User, 1).hashed_password
+        payload = {
+            "username": "alice", "email": "alice@example.com", "mobile_number": None,
+            "first_name": "Alicia", "middle_name": None, "last_name": "Test",
+            "date_of_birth": None, "role_id": 1, "account_status": "ACTIVE",
+        }
+        response = self.client.put('/users/1', headers=self.admin, json=payload)
+        self.assertEqual(response.status_code, 200, response.text)
+        with TestSession() as db:
+            self.assertEqual(db.get(User, 1).hashed_password, original_hash)
+        self.assertEqual(self.client.put('/users/1', headers=self.admin, json={**payload, "password": "Replacement-123!"}).status_code, 422)
 
     def test_goal_ownership_and_validation(self):
         response = self.client.post('/customer/goals/', headers=self.alice, json={"name": "Emergency fund", "target_amount": "5000", "saved_amount": "100"})

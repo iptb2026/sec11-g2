@@ -22,7 +22,7 @@
         </q-card-section>
 
         <q-card-section class="q-gutter-md">
-          <q-select
+          <search-select
             v-model="form.account_id"
             label="Account"
             filled
@@ -31,7 +31,7 @@
             :options="accountOptions"
           />
           <q-input v-model="form.transaction_reference" label="Transaction Reference" filled />
-          <q-input v-model="form.transaction_type" label="Transaction Type" filled hint="e.g. FEE, DEPOSIT, TRANSFER" />
+          <q-select v-model="form.transaction_type" label="Transaction type" filled emit-value map-options :options="transactionTypeOptions" />
           <q-input v-model.number="form.debit_amount" label="Debit Amount" type="number" filled />
           <q-input v-model.number="form.credit_amount" label="Credit Amount" type="number" filled />
         </q-card-section>
@@ -49,12 +49,13 @@
 import { ref, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import api from '@/services/api'
+import { optionLabel } from '@/utils/filter-options'
 
 const $q = useQuasar()
 
 const columns = [
   { name: 'id', label: 'ID', field: 'id', align: 'left' },
-  { name: 'account_id', label: 'Account ID', field: 'account_id', align: 'left' },
+  { name: 'account_id', label: 'Account', field: row => optionLabel(accountOptions.value, row.account_id), align: 'left' },
   { name: 'transaction_reference', label: 'Reference', field: 'transaction_reference', align: 'left' },
   { name: 'transaction_type', label: 'Type', field: 'transaction_type', align: 'left' },
   { name: 'debit_amount', label: 'Debit', field: 'debit_amount', align: 'right' },
@@ -66,6 +67,17 @@ const columns = [
 
 const rows = ref([])
 const accountOptions = ref([])
+const transactionTypeOptions = [
+  { label: 'Deposit', value: 'DEPOSIT' },
+  { label: 'Withdrawal', value: 'WITHDRAWAL' },
+  { label: 'Transfer debit', value: 'TRANSFER_DEBIT' },
+  { label: 'Transfer credit', value: 'TRANSFER_CREDIT' },
+  { label: 'Fee', value: 'FEE' },
+  { label: 'Interest', value: 'INTEREST' },
+  { label: 'Interbank debit', value: 'INTERBANK_DEBIT' },
+  { label: 'Interbank credit', value: 'INTERBANK_CREDIT' },
+  { label: 'Reversal', value: 'REVERSAL' },
+]
 const loading = ref(false)
 const showDialog = ref(false)
 const emptyForm = () => ({ account_id: null, transaction_reference: '', transaction_type: '', debit_amount: 0, credit_amount: 0 })
@@ -79,8 +91,9 @@ async function loadRows () {
 }
 
 async function loadOptions () {
-  const { data } = await api.get('/accounts/')
-  accountOptions.value = data.map((a) => ({ label: a.account_number, value: a.id }))
+  const [{ data: accounts }, { data: users }] = await Promise.all([api.get('/accounts/'), api.get('/users/')])
+  const names = Object.fromEntries(users.map(user => [user.id, `${user.first_name} ${user.last_name}`]))
+  accountOptions.value = accounts.map(account => ({ label: account.account_number, holder: names[account.customer_id], value: account.id }))
 }
 
 function openCreate () {
